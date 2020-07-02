@@ -1,0 +1,195 @@
+<?xml version="1.0"?>
+<robot name="physics">
+  <link name="bulkhead">
+    <visual>
+      <geometry>
+        <cylinder length="2" radius="0.2"/>
+      </geometry>
+      <material name="bright">
+        <color rgba="0.6 .6 .6 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="2" radius="0.2"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="2"/>
+      <inertia ixx="0.70286667" ixy="0.0" ixz="0.0" iyy="0.70286667" iyz="0.0" izz="0.0724"/>
+    </inertial>
+  </link>
+  
+  <link name="fuel">
+    <visual>
+      <geometry>
+        <cylinder radius="0.21" length = "0.05"/>
+      </geometry>
+      <material name="fuel">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="10"/>
+      <inertia ixx="3.4333333" ixy="0.0" ixz="0.0" iyy="3.4333333" iyz="0.0" izz="0.2"/>
+    </inertial>
+  </link>
+  
+  <joint name="base_to_fuel" type="prismatic">
+	<axis xyz="0 0 1"/>
+    <parent link="bulkhead"/>
+    <child link="fuel"/>
+	<limit effort="1000.0" lower="-1" upper="0" velocity="0.5"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  </joint>
+  
+  <link name="nozzle">
+    <visual>
+      <geometry>
+        <cylinder length="0.15" radius="0.15"/>
+      </geometry>
+	  <origin rpy="0 0 0" xyz="0 0 -0.075"/>
+      <material name="dark">
+        <color rgba="0.3 .3 .3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.15" radius="0.15"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+  </link>
+  
+  <joint name="base_to_nozzle" type="revolute">
+	<axis xyz="0 1 0"/>
+	<limit effort="1000.0" lower="-0.2" upper="0.2" velocity="0.5"/>
+    <parent link="bulkhead"/>
+    <child link="nozzle"/>
+    <origin rpy="0 0 0" xyz="0 0 -1"/>
+  </joint>
+  
+  <link name="right_leg">
+    <visual>
+      <geometry>
+        <box size="1 .1 .05"/>
+      </geometry>
+      <origin rpy="0 1.57075 0" xyz="0 0 -0.3"/>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="1 .1 .05"/>
+      </geometry>
+      <origin rpy="0 1.57075 0" xyz="0 0 -0.3"/>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <origin rpy="0 0.5 0" xyz="0 0 -0.3"/>
+      <inertia ixx="0.00052073" ixy="0.0" ixz="0.0" iyy="0.04177083" iyz="0.0" izz="0.0420833"/>
+    </inertial>
+  </link>
+
+  <joint name="base_to_right_leg" type="fixed">
+    <parent link="bulkhead"/>
+    <child link="right_leg"/>
+    <origin rpy="0 -1 0" xyz="0.22 0 -1"/>
+  </joint>
+  
+  <link name="left_leg">
+    <visual>
+      <geometry>
+        <box size="1 .1 .05"/>
+      </geometry>
+      <origin rpy="0 1.57075 0" xyz="0 0 -0.3"/>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="1 .1 .05"/>
+      </geometry>
+      <origin rpy="0 1.57075 0" xyz="0 0 -0.3"/>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <origin rpy="0 0.5 0" xyz="0 0 -0.3"/>
+      <inertia ixx="0.00052073" ixy="0.0" ixz="0.0" iyy="0.04177083" iyz="0.0" izz="0.0420833"/>
+    </inertial>
+  </link>
+
+  <joint name="base_to_left_leg" type="fixed">
+    <parent link="bulkhead"/>
+    <child link="left_leg"/>
+    <origin rpy="0 1 0" xyz="-0.22 0 -1"/>
+  </joint>
+  
+
+
+  <link name="front_leg">
+    <visual>
+      <geometry>
+        <box size="1 .05 .1"/>
+      </geometry>
+      <origin rpy="0 1.57075 0" xyz="0 0 -0.3"/>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="1 .05 .1"/>
+      </geometry>
+      <origin rpy="0 1.57075 0" xyz="0 0 -0.3"/>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <origin rpy="0 0.5 0" xyz="0 0 -0.3"/>
+      <inertia ixx="0.00052073" ixy="0.0" ixz="0.0" iyy="0.04177083" iyz="0.0" izz="0.0420833"/>
+    </inertial>
+  </link>
+
+  <joint name="base_to_front_leg" type="fixed">
+    <parent link="bulkhead"/>
+    <child link="front_leg"/>
+    <origin rpy="1 0 0" xyz="0 0.22 -1"/>
+  </joint>
+  
+    <link name="rear_leg">
+    <visual>
+      <geometry>
+        <box size="1 .05 .1"/>
+      </geometry>
+      <origin rpy="0 1.57075 0" xyz="0 0 -0.3"/>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="1 .05 .1"/>
+      </geometry>
+      <origin rpy="0 1.57075 0" xyz="0 0 -0.3"/>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <origin rpy="0 0.5 0" xyz="0 0 -0.3"/>
+      <inertia ixx="0.00052073" ixy="0.0" ixz="0.0" iyy="0.04177083" iyz="0.0" izz="0.0420833"/>
+    </inertial>
+  </link>
+
+  <joint name="base_to_rear_leg" type="fixed">
+    <parent link="bulkhead"/>
+    <child link="rear_leg"/>
+    <origin rpy="-1 0 0" xyz="0 -0.22 -1"/>
+  </joint>
+  
+  
+  
+</robot>
