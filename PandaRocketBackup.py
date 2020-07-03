@@ -129,23 +129,23 @@ class Simulation(DirectObject):
         self.throttle += throttleChange/100.0
         self.throttle = min(max(self.throttle,0),1)
         thrust=Vec3(0,0,self.throttle*50)
-        #quatGimbal = self.rocketNozzle.getTransform(self.worldNP).getQuat()
+        quatGimbal = self.rocketNozzle.getTransform(self.worldNP).getQuat()
         
-        #self.rocketNozzle.node().applyForce(quatGimbal.xform(thrust),LPoint3f(0,0,0))
+        self.rocketNozzle.node().applyForce(quatGimbal.xform(thrust),LPoint3f(0,0,0))
         
         #torque *= 10.0
     
         #force = render.getRelativeVector(self.rocketNP, force)
         #torque = render.getRelativeVector(self.rocketNP, torque)
     
-        #self.rocketNozzle.node().setActive(True)
+        self.rocketNozzle.node().setActive(True)
         self.rocketNP.node().setActive(True)
         #self.rocketNozzle.node().applyCentralForce(force)
         #self.rocketNozzle.node().applyTorque(torque)
         force = rot.from_euler('zyx',force).as_quat()
         
     
-        #self.cone.setMotorTarget(LQuaternionf(force[0],force[1],force[2],force[3]))
+        self.cone.setMotorTarget(LQuaternionf(force[0],force[1],force[2],force[3]))
 
     def update(self, task):
         dt = globalClock.getDt()
@@ -154,13 +154,13 @@ class Simulation(DirectObject):
         #self.world.doPhysics(dt)
         self.world.doPhysics(dt, 5, 1.0/180.0)
         
-        #yawpitchroll = rot.from_quat(self.rocketNozzle.getTransform(self.rocketNP).getQuat())
-        #yawpitchroll = yawpitchroll.as_euler('zyx',degrees=True)
+        yawpitchroll = rot.from_quat(self.rocketNozzle.getTransform(self.rocketNP).getQuat())
+        yawpitchroll = yawpitchroll.as_euler('zyx',degrees=True)
          
         #self.ostData.destroy()
         telemetry = []
-        #telemetry.append('Nozzle Position:\n Yaw: {}\n Pitch: {}\n Roll: {}'.format(
-            #int(yawpitchroll[0]),int(yawpitchroll[1]),int(yawpitchroll[2])))
+        telemetry.append('Nozzle Position:\n Yaw: {}\n Pitch: {}\n Roll: {}'.format(
+            int(yawpitchroll[0]),int(yawpitchroll[1]),int(yawpitchroll[2])))
         telemetry.append('\nThrottle: {}'.format(self.throttle))
         
         self.ostData.setText('\n'.join(telemetry))
@@ -222,31 +222,8 @@ class Simulation(DirectObject):
             leg = BulletCylinderShape(0.02*self.scale, 1*self.scale, XUp)
             self.rocketNP.node().addShape(leg, TransformState.makePosHpr(Vec3(0.6*self.scale*math.cos(i*math.pi/2),0.6*self.scale*math.sin(i*math.pi/2),-1.2*self.scale),Vec3(i*90,0,30)))
             
+            
         shape =  BulletConeShape(0.15*self.scale,0.3*self.scale, ZUp)
-        self.rocketNP.node().addShape(shape, TransformState.makePosHpr(Vec3(0,0,-1*self.scale),Vec3(0,0,0)))
-        
-        
-        #Fuel
-        shape = BulletCylinderShape(0.15*self.scale, 0.1*self.scale, ZUp)
-        self.fuel  = self.worldNP.attachNewNode(BulletRigidBodyNode('Cone'))
-        self.fuel.node().setMass(1)
-        self.fuel.node().addShape(shape)
-        self.fuel.setPos(0,0,2*self.scale)
-        self.fuel.setCollideMask(BitMask32.allOn())
-    
-        self.rocketNP.node().attachRigidBody(self.fuel.node())
-        
-        frameA = TransformState.makePosHpr(Point3(0, 0, 0*self.scale), Vec3(0, 0, 0))
-        frameB = TransformState.makePosHpr(Point3(0, 0, 0*self.scale), Vec3(0, 0, 0))
-        
-        self.fuelSlider = BulletConeTwistConstraint(self.rocketNP.node(), self.fuel.node(), frameA, frameB)
-        self.fuelSlider.enableMotor(1)
-        #self.cone.setMaxMotorImpulse(2)
-        #self.cone.setDamping(1000)
-        self.fuelSlider.setDebugDrawSize(2.0)
-        self.rocketNP.attachConstraint(self.fuelSlider)
-        
-        """
         
         self.rocketNozzle  = self.worldNP.attachNewNode(BulletRigidBodyNode('Cone'))
         self.rocketNozzle.node().setMass(1)
@@ -266,7 +243,7 @@ class Simulation(DirectObject):
         self.cone.setDebugDrawSize(2.0)
         self.cone.setLimit(20, 20, 0, softness=1.0, bias=1.0, relaxation=10.0)
         self.world.attachConstraint(self.cone)
-        """
+        
         """# Box (dynamic)
         shape = BulletBoxShape(Vec3(0.5, 0.5, 0.5))
     

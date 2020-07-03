@@ -195,7 +195,7 @@ class Game(DirectObject):
 
     cone = BulletConeTwistConstraint(bodyA, bodyB, frameA, frameB)
     cone.setDebugDrawSize(2.0)
-    cone.setLimit(30, 45, 170, softness=10.0, relaxation=8.0)
+    cone.setLimit(30, 45, 170, softness=10.0, bias = 3.0, relaxation=8.0)
     self.world.attachConstraint(cone)
 
 game = Game()
