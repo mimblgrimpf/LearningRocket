@@ -6,6 +6,7 @@ from RocketEngine import RocketEngine as RE
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.InputStateGlobal import inputState
 from direct.gui.OnscreenText import OnscreenText
+from direct.directtools.DirectGeometry import LineNodePath
 
 from panda3d.core import AmbientLight
 from panda3d.core import DirectionalLight
@@ -230,6 +231,7 @@ class Simulation(DirectObject):
         self.rocketNozzle.node().addShape(shape)
         self.rocketNozzle.setPos(0,0,0.8*self.scale)
         self.rocketNozzle.setCollideMask(BitMask32.allOn())
+        self.rocketNozzle.node().setCollisionResponse(0)
     
         self.world.attachRigidBody(self.rocketNozzle.node())
         
@@ -244,26 +246,17 @@ class Simulation(DirectObject):
         self.cone.setLimit(20, 20, 0, softness=1.0, bias=1.0, relaxation=10.0)
         self.world.attachConstraint(self.cone)
         
-        """# Box (dynamic)
-        shape = BulletBoxShape(Vec3(0.5, 0.5, 0.5))
-    
-        self.boxNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Box'))
-        self.boxNP.node().setMass(1.0)
-        self.boxNP.node().addShape(shape)
-        self.boxNP.setPos(0, 0, 2)
-        #self.boxNP.setScale(2, 1, 0.5)
-        self.boxNP.setCollideMask(BitMask32.allOn())
-        #self.boxNP.node().setDeactivationEnabled(False)
-    
-        self.world.attachRigidBody(self.boxNP.node())"""
-        """
-        visualNP = loader.loadModel('bullet-samples/models/box.egg')
-        visualNP.clearModelNodes()
-        visualNP.reparentTo(self.rocketNP)
-        """
-        # Bullet nodes should survive a flatten operation!
-        #self.worldNP.flattenStrong()
-        #render.ls()
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        self.npThrustForce = LineNodePath(self.render, 'Thrust', thickness=4, colorVec=VBase4(1, 0.5, 0, 1))
 
 simulation = Simulation()
 base.run()
