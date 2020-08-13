@@ -6,6 +6,7 @@ Created on Sat Jul 25 13:53:10 2020
 """
 from typing import List
 import tensorflow as tf
+import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,7 +17,7 @@ from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.ddpg.noise import NormalActionNoise
 from stable_baselines.td3.policies import MlpPolicy, LnMlpPolicy
 from stable_baselines.td3.policies import LnCnnPolicy, CnnPolicy
-
+from stable_baselines.common.callbacks import EvalCallback
 
 from LearningRocket import LearningRocket
 from NormalizedActions import NormalizeActionWrapper
@@ -31,6 +32,12 @@ class RocketTrainer:
 
         self.env = LearningRocket(visualize=False)
         self.env = NormalizeActionWrapper(self.env)
+        """
+        self.eval_env = LearningRocket(visualize=True)
+        self.eval_env = NormalizeActionWrapper(self.env)
+        self.eval_callback = EvalCallback(self.eval_env, best_model_save_path='Agent007',
+                                     log_path='./logs/', eval_freq=50000,
+                                     deterministic=True, render=False)"""
         kai_policy = dict(act_fun=tf.nn.tanh, net_arch=[400, 300])
         check_env(self.env, warn=True)
 
@@ -47,8 +54,12 @@ class RocketTrainer:
             action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
             if load is True:
                 self.model = TD3.load(agent_name, env=self.env, tensorboard_log="./rocket_tensorboard/")
+                file = open('replay_buffer', 'rb')
+                self.model.replay_buffer = pickle.load(file)
+                file.close()
             else:
-                self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=256, learning_starts=1000, learning_rate=0.01, verbose=1, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
+                self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=256, learning_starts=1000,
+                                learning_rate=1e-4, verbose=1, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
             print("Trainer Set for TD3")
 
     def train(self, visualize=False, batches=1):
@@ -56,8 +67,11 @@ class RocketTrainer:
         self.env.render(visualize)
         for i in range(batches):
             print("*sigh* here we go again.")
-            self.model.learn(total_timesteps=500000)
+            self.model.learn(total_timesteps=100000)#,callback=self.eval_callback)
             self.model.save(self.agent_name)
+            a_file = open('replay_buffer', 'wb')
+            pickle.dump(self.model.replay_buffer, a_file)
+            a_file.close()
             print("{} Batches Done.".format(i+1))
             # plt.close()
             mean_reward, std_reward = evaluate_policy(self.model, self.env, n_eval_episodes=10)
@@ -91,9 +105,12 @@ class RocketTrainer:
         while done is False:
             action, states = self.model.predict(obs)
             obs, reward, done, info = self.env.step(action)
+            #obs = self.env.rescale_observation(obs)
+            action = self.env.rescale_action(action)
             reward_list.append(reward)
             cumulativeReward += reward
             reward_sum.append(cumulativeReward)
+            #action_list[0].append(action[0])
             for i in range(3):
                 action_list[i].append(action[i])
             for i in range(obs.size):
@@ -145,14 +162,14 @@ class RocketTrainer:
         plt.xlabel('Time(s)')
         plt.ylabel('Fuel')
         plt.plot(Time, data[12], label='Fuel')
-        plt.legend(loc='best')
+        plt.legend(loc='best') 
         """
         plt.tight_layout()
         plt.show()
 
 
 if __name__ == "__main__":
-    T = RocketTrainer(algorithm="TD3", load=False, agent_name="Agent001")
+    T = RocketTrainer(algorithm="TD3", load=True, agent_name="Agent005")
     T.train(visualize=False, batches=1)
     #T.env.render(True)
     #T.lecture()

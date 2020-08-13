@@ -28,15 +28,23 @@ class LearningRocket(gym.Env):
         # They must be gym.spaces objects
         # Example when using discrete actions:
         self.action_space = spaces.Box(low=np.array([0.1, -10, -10]), high=np.array([1, 10, 10]), dtype=np.double)
+        #self.action_space = spaces.Box(low=np.array([0.1]), high=np.array([1]), dtype=np.double)
         # Example for using image as input:
         """self.observation_space = spaces.Box(
             low=np.array([-400, -400, 0, -100, -100, -100, -180, -180, -180, -2, -2, -2, 0]),
             high=np.array([400, 400, 1000, 100, 100, 100, 180, 180, 180, 2, 2, 2, 1]),
             dtype=np.double)"""
+
         self.observation_space = spaces.Box(
             low=np.array([-400, -400, 0, -180, -180, -180]),
             high=np.array([400, 400, 1000, 180, 180, 180]),
             dtype=np.double)
+        """
+        self.observation_space = spaces.Box(
+            low=np.array([0,-100]),
+            high=np.array([1000,100]),
+            dtype=np.double)"""
+
         # base.run()
 
     def step(self, action):
@@ -49,14 +57,18 @@ class LearningRocket(gym.Env):
                                 rotVel[2], fuel])"""
 
         observation = np.array([pos[0], pos[1], pos[2], Roll, Pitch, Yaw])
+        #observation = np.array([pos[2],vel[2]])
         done = LANDED
 
         if LANDED is True:
-            # reward = -100.0 * (mag(pos) + 10.0 * mag(vel) + abs(Pitch) + abs(Yaw) + mag(rotVel)) / 100000.0
+
+            #reward = -100.0 * (mag(pos) + 10.0 * mag(vel) + abs(Pitch) + abs(Yaw) + mag(rotVel)) / 100000.0
             reward = -(abs(pos.getX()) + abs(pos.getY())) / 400.0
+            #reward = -abs(pos.getZ()-500)/500#+1
         else:
             # reward = -0.01 * (abs(Pitch) + abs(Yaw) + mag(rotVel) + abs(pos.getX()) + abs(pos.getY())) / 100000.0
             reward = -(abs(pos.getX()) + abs(pos.getY())) / 400.0
+            #reward = -abs(pos.getZ()-500)/500#+1
             # reward = 0
         info = {
             "A": "B"

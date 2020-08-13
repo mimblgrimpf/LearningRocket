@@ -36,8 +36,14 @@ class NormalizeActionWrapper(gym.Wrapper):
         """
         return self.action_low + (0.5 * (scaled_action + 1.0) * (self.action_high - self.action_low))
 
+    def downscale_action(self, action):
+        return ((action - self.action_low) / (self.action_high - self.action_low) * 2.0) - 1.0
+
     def downscale_observation(self, observation):
         return ((observation - self.observation_low) / (self.observation_high - self.observation_low) * 2.0) - 1.0
+
+    def rescale_observation(self,observation):
+        return self.observation_low + (0.5 * (observation + 1.0) * (self.observation_high - self.observation_low))
 
     def reset(self):
         """

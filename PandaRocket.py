@@ -288,9 +288,13 @@ class Simulation(ShowBase):
         self.terrain.setColor(Vec4(0.1, 0.2, 0.1, 1))
         self.toggleTexture()
 
-        for i in range(10):
+
+
+        for i in range(5):
+            #self.rocketNP.setPos(20, 20, self.height)
             dt = globalClock.getFrameTime()
             self.world.doPhysics(dt, 5, 1.0 / 180.0)
+            #pos = self.rocketNP.getPos()
 
     def updateRocket(self, mdot, dt):
 
@@ -404,7 +408,9 @@ class Simulation(ShowBase):
         self.world.doPhysics(self.dt)
         self.steps+=1
 
-        self.processContacts()
+        #elf.processContacts()
+        if self.steps > 1000:
+            self.LANDED = True
 
         telemetry = []
 
