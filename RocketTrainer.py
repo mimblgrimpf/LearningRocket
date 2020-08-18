@@ -10,7 +10,7 @@ import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
-from stable_baselines import SAC
+#from stable_baselines import SAC
 from stable_baselines import TD3
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.common.evaluation import evaluate_policy
@@ -18,6 +18,7 @@ from stable_baselines.ddpg.noise import NormalActionNoise
 from stable_baselines.td3.policies import MlpPolicy, LnMlpPolicy
 from stable_baselines.td3.policies import LnCnnPolicy, CnnPolicy
 from stable_baselines.common.callbacks import EvalCallback
+from stable_baselines.common.callbacks import CheckpointCallback, EveryNTimesteps
 
 from LearningRocket import LearningRocket
 from NormalizedActions import NormalizeActionWrapper
@@ -32,15 +33,15 @@ class RocketTrainer:
 
         self.env = LearningRocket(visualize=False)
         self.env = NormalizeActionWrapper(self.env)
-        """
+
         self.eval_env = LearningRocket(visualize=True)
-        self.eval_env = NormalizeActionWrapper(self.env)
+        self.eval_env = NormalizeActionWrapper(self.eval_env)
         self.eval_callback = EvalCallback(self.eval_env, best_model_save_path='Agent007',
                                      log_path='./logs/', eval_freq=50000,
-                                     deterministic=True, render=False)"""
+                                     deterministic=True, render=False,n_eval_episodes=1)
         kai_policy = dict(act_fun=tf.nn.tanh, net_arch=[400, 300])
-        check_env(self.env, warn=True)
-
+        #check_env(self.env, warn=True)
+        """
         if algorithm == "SAC":
             if load is True:
                 self.model = SAC.load(agent_name, env=self.env, tensorboard_log="./rocket_tensorboard/")
@@ -48,26 +49,26 @@ class RocketTrainer:
             else:
                 self.model = SAC('MlpPolicy', self.env, verbose=1, tensorboard_log="./rocket_tensorboard/",ent_coef=5)
             print("Trainer Set for SAC")
-
-        elif algorithm == "TD3":
+        """
+        if algorithm == "TD3":
             n_actions = self.env.action_space.shape[-1]
             action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
             if load is True:
                 self.model = TD3.load(agent_name, env=self.env, tensorboard_log="./rocket_tensorboard/")
-                file = open('replay_buffer', 'rb')
-                self.model.replay_buffer = pickle.load(file)
-                file.close()
+                #file = open('replay_buffer', 'rb')
+                #self.model.replay_buffer = pickle.load(file)
+                #file.close()
             else:
-                self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=256, learning_starts=1000,
-                                learning_rate=1e-4, verbose=1, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
+                self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=370, gamma=0.94, learning_starts=3000, buffer_size=50000,
+                                learning_rate=2e-3, train_freq=2600, gradient_steps=1500, verbose=1, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
             print("Trainer Set for TD3")
 
-    def train(self, visualize=False, batches=1):
+    def train(self, visualize=False, lesson_length=100000,lessons=1):
         print("Today I'm teaching rocket science. How hard can it be?")
-        self.env.render(visualize)
-        for i in range(batches):
+        #self.env.render(visualize)
+        for i in range(lessons):
             print("*sigh* here we go again.")
-            self.model.learn(total_timesteps=100000)#,callback=self.eval_callback)
+            self.model.learn(total_timesteps=lesson_length)#,callback=self.eval_callback)#,callback=self.eval_callback)
             self.model.save(self.agent_name)
             a_file = open('replay_buffer', 'wb')
             pickle.dump(self.model.replay_buffer, a_file)
@@ -86,8 +87,8 @@ class RocketTrainer:
 
     def evaluate(self):
         print("Watch this!")
-        obs = self.env.reset()
-        self.env.render(True)
+        obs = self.eval_env.reset()
+        #self.eval_env.render(True)
 
         reward_list = []
         reward_sum: List[float] = []
@@ -104,15 +105,15 @@ class RocketTrainer:
         done = False
         while done is False:
             action, states = self.model.predict(obs)
-            obs, reward, done, info = self.env.step(action)
-            #obs = self.env.rescale_observation(obs)
-            action = self.env.rescale_action(action)
+            obs, reward, done, info = self.eval_env.step(action)
+            #obs = self.eval_env.rescale_observation(obs)
+            action = self.eval_env.rescale_action(action)
             reward_list.append(reward)
             cumulativeReward += reward
             reward_sum.append(cumulativeReward)
-            #action_list[0].append(action[0])
-            for i in range(3):
-                action_list[i].append(action[i])
+            action_list[0].append(action[0])
+            #for i in range(3):
+            #    action_list[i].append(action[i])
             for i in range(obs.size):
                 data[i].append(obs[i])
             steps += 1
@@ -125,8 +126,8 @@ class RocketTrainer:
         plt.xlabel('Time(s)')
         plt.ylabel('Position (m)')
         plt.plot(Time, data[0], label='X Position')
-        plt.plot(Time, data[1], label='Y Position')
-        plt.plot(Time, data[2], label='Z Position')
+        plt.plot(Time, data[1], label='Speed')
+        #plt.plot(Time, data[2], label='Z Position')
         plt.legend(loc='best')
         plt.subplot(3, 2, 1)
         plt.xlabel('Time(s)')
@@ -138,42 +139,43 @@ class RocketTrainer:
         plt.xlabel('Time(s)')
         plt.ylabel('Actions')
         plt.plot(Time, action_list[0], label='Thrust')
-        plt.plot(Time, action_list[1], label='GimbalX')
-        plt.plot(Time, action_list[2], label='GimbalY')
+        #plt.plot(Time, action_list[1], label='GimbalX')
+        #plt.plot(Time, action_list[2], label='GimbalY')
         plt.legend(loc='best')
-        """
+
         plt.subplot(3, 2, 4)
         plt.xlabel('Time(s)')
         plt.ylabel('Attitude')
-        plt.plot(Time, data[6], label='Roll')
-        plt.plot(Time, data[7], label='Pitch')
-        plt.plot(Time, data[8], label='Yaw')
+        #plt.plot(Time, data[4], label='Roll')
+        #plt.plot(Time, data[4], label='Pitch')
+        #plt.plot(Time, data[5], label='Yaw')
         plt.legend(loc='best')
-        """
+
         plt.subplot(3, 2, 5)
         plt.xlabel('Time(s)')
         plt.ylabel('Velocity')
-        plt.plot(Time, data[3], label='vX')
-        plt.plot(Time, data[4], label='vY')
-        plt.plot(Time, data[5], label='vZ')
+        #plt.plot(Time, data[2], label='vX')
+        #plt.plot(Time, data[3], label='vY')
+        #plt.plot(Time, data[5], label='vZ')
         plt.legend(loc='best')
-        """
+
         plt.subplot(3, 2, 6)
         plt.xlabel('Time(s)')
-        plt.ylabel('Fuel')
-        plt.plot(Time, data[12], label='Fuel')
-        plt.legend(loc='best') 
-        """
+        plt.ylabel('RotVel')
+        #plt.plot(Time, data[12], label='Fuel')
+        #plt.plot(Time, data[6], label='Rot X')
+        #plt.plot(Time, data[7], label='Rot Y')
+        plt.legend(loc='best')
+
         plt.tight_layout()
         plt.show()
 
 
 if __name__ == "__main__":
-    T = RocketTrainer(algorithm="TD3", load=True, agent_name="Agent005")
-    T.train(visualize=False, batches=1)
+    T = RocketTrainer(algorithm="TD3", load=True, agent_name="AltitudeHold")
+    T.train(visualize=False, lesson_length=100000, lessons=5)
     #T.env.render(True)
-    #T.lecture()
-    #                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           T.evaluate()
+    #T.lecture()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              T.evaluate()
     #data_set = ExpertDataset(expert_path='dummy_expert_rocket.npz',batch_size=128)
     #T.model.pretrain(data_set, n_epochs=10000)
     #T.model.save(T.agent_name)
