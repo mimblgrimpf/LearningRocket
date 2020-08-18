@@ -17,7 +17,7 @@ from panda3d.bullet import BulletSliderConstraint
 from panda3d.bullet import BulletWorld
 from panda3d.bullet import XUp
 from panda3d.bullet import ZUp
-from panda3d.core import AmbientLight
+from panda3d.core import AmbientLight, NodePath, PandaNode
 from panda3d.core import BitMask32
 from panda3d.core import DirectionalLight
 from panda3d.core import Point3
@@ -76,56 +76,50 @@ class Simulation(ShowBase):
     Cd = 1.5
 
 
-    def __init__(self, VISUALIZE=True):
+    def __init__(self, VISUALIZE=False):
 
         self.VISUALIZE = VISUALIZE
-        ShowBase.__init__(self)
 
 
+        if VISUALIZE is True:
+            ShowBase.__init__(self)
+            self.setBackgroundColor(0.2, 0.2, 0.2, 1)
+            self.setFrameRateMeter(True)
+            self.render.setShaderAuto()
+            self.cam.setPos(-120 * self.scale, -120 * self.scale, 120 * self.scale)
+            self.cam.lookAt(0, 0, 10 * self.scale)
+            alight = AmbientLight('ambientLight')
+            alight.setColor(Vec4(0.5, 0.5, 0.5, 1))
+            alightNP = self.render.attachNewNode(alight)
 
-        self.setBackgroundColor(0.2, 0.2, 0.2, 1)
-        self.setFrameRateMeter(True)
+            dlight = DirectionalLight('directionalLight')
+            dlight.setDirection(Vec3(1, -1, -1))
+            dlight.setColor(Vec4(0.7, 0.7, 0.7, 1))
+            dlightNP = self.render.attachNewNode(dlight)
+
+            self.render.clearLight()
+            self.render.setLight(alightNP)
+            self.render.setLight(dlightNP)
+
+            self.accept('escape', self.doExit)
+            self.accept('r', self.doReset)
+            self.accept('f1', self.toggleWireframe)
+            self.accept('f2', self.toggleTexture)
+            self.accept('f3', self.toggleDebug)
+            self.accept('f5', self.doScreenshot)
+
+            inputState.watchWithModifiers('forward', 'w')
+            inputState.watchWithModifiers('left', 'a')
+            inputState.watchWithModifiers('reverse', 's')
+            inputState.watchWithModifiers('right', 'd')
+            inputState.watchWithModifiers('turnLeft', 'q')
+            inputState.watchWithModifiers('turnRight', 'e')
+            self.ostData = OnscreenText(text='ready', pos=(-1.3, 0.9), scale=0.07, fg=Vec4(1, 1, 1, 1),
+            align=TextNode.ALeft)
 
         self.fuelMass = self.fuelMass_full * self.fuelMass_init
 
-        #self.render.setShaderAuto()
-        self.cam.setPos(-120 * self.scale, -120 * self.scale, 120 * self.scale)
-        self.cam.lookAt(0, 0, 10 * self.scale)
 
-        # Light
-        alight = AmbientLight('ambientLight')
-        alight.setColor(Vec4(0.5, 0.5, 0.5, 1))
-        alightNP = self.render.attachNewNode(alight)
-
-        dlight = DirectionalLight('directionalLight')
-        dlight.setDirection(Vec3(1, -1, -1))
-        dlight.setColor(Vec4(0.7, 0.7, 0.7, 1))
-        dlightNP = self.render.attachNewNode(dlight)
-
-        self.render.clearLight()
-        self.render.setLight(alightNP)
-        self.render.setLight(dlightNP)
-
-        # Input
-        self.accept('escape', self.doExit)
-        self.accept('r', self.doReset)
-        self.accept('f1', self.toggleWireframe)
-        self.accept('f2', self.toggleTexture)
-        self.accept('f3', self.toggleDebug)
-        self.accept('f5', self.doScreenshot)
-
-        inputState.watchWithModifiers('forward', 'w')
-        inputState.watchWithModifiers('left', 'a')
-        inputState.watchWithModifiers('reverse', 's')
-        inputState.watchWithModifiers('right', 'd')
-        inputState.watchWithModifiers('turnLeft', 'q')
-        inputState.watchWithModifiers('turnRight', 'e')
-
-        # Task
-        #self.taskMgr.add(self.processContacts, 'processContacts')
-
-        self.ostData = OnscreenText(text='ready', pos=(-1.3, 0.9), scale=0.07, fg=Vec4(1, 1, 1, 1),
-                                    align=TextNode.ALeft)
 
         # Physics
         self.setup()
@@ -201,7 +195,19 @@ class Simulation(ShowBase):
         self.fuelMass = self.fuelMass_full*self.fuelMass_init
 
     def setup(self):
-        self.worldNP = self.render.attachNewNode('World')
+
+        if self.VISUALIZE is True:
+            self.worldNP = self.render.attachNewNode('World')
+
+        else:
+            self.root = NodePath(PandaNode("world root"))
+            self.worldNP = self.root.attachNewNode('World')
+
+
+
+
+
+
         self.world = BulletWorld()
         self.world.setGravity(Vec3(0, 0, -9.80665))
 
@@ -282,11 +288,12 @@ class Simulation(ShowBase):
         self.rocketCSLon = self.radius ** 2 * math.pi
         self.rocketCSLat = self.length * 2 * self.radius
 
-        self.terrain = loader.loadModel("LZGrid2.egg")
-        self.terrain.setScale(10)
-        self.terrain.reparentTo(self.render)
-        self.terrain.setColor(Vec4(0.1, 0.2, 0.1, 1))
-        self.toggleTexture()
+        if self.VISUALIZE is True:
+            self.terrain = loader.loadModel("LZGrid2.egg")
+            self.terrain.setScale(10)
+            self.terrain.reparentTo(self.render)
+            self.terrain.setColor(Vec4(0.1, 0.2, 0.1, 1))
+            self.toggleTexture()
 
 
 
@@ -328,7 +335,7 @@ class Simulation(ShowBase):
 
         return pos, vel, Roll, Pitch, Yaw, rotVel, self.fuelMass / self.fuelMass_full, self.EMPTY, self.LANDED
 
-    def control(self, throttle, gimbalX, gimbalY):
+    def control(self, throttle, gimbalX=0, gimbalY=0):
         self.throttle = throttle
         self.gimbalX = gimbalX
         self.gimbalY = gimbalY
@@ -426,33 +433,36 @@ class Simulation(ShowBase):
         telemetry.append('Rot: {},{},{}'.format(int(rotVel.getX()), int(rotVel.getY()), int(rotVel.getZ())))
         telemetry.append('LANDED: {}'.format(self.LANDED))
         telemetry.append('Time: {}'.format(self.steps*self.dt))
-
-        self.ostData.setText('\n'.join(telemetry))
-
-        self.cam.setPos(pos[0] - 120 * self.scale, pos[1] - 120 * self.scale, pos[2] + 80 * self.scale)
-        self.cam.lookAt(pos[0], pos[1], pos[2])
-
+        #print(pos)
         if self.VISUALIZE is True:
+            self.ostData.setText('\n'.join(telemetry))
+            self.cam.setPos(pos[0] - 120 * self.scale, pos[1] - 120 * self.scale, pos[2] + 80 * self.scale)
+            self.cam.lookAt(pos[0], pos[1], pos[2])
             self.taskMgr.step()
 
+
+    """
     def setVisualization(self,visualize):
         if visualize is True:
             self.VISUALIZE=True
         else:
-            self.VISUALIZE=False
+            self.VISUALIZE=False"""
 
 
 
 
 if __name__ == "__main__":
-    simulation = Simulation()
+    simulation = Simulation(VISUALIZE=False)
     simulation.CONTROL=True
+    simulation2 = Simulation(VISUALIZE=True)
+    simulation2.CONTROL = False
     #simulation.taskMgr.add(simulation.update, 'update')
 
-    print(simulation.taskMgr.getAllTasks())
+    #print(simulation.taskMgr.getAllTasks())
 
     #simulation.run()
     for i in range(10000):
         simulation.control(0.1,0.1,0.1)
-        pos,_,_,_,_,_,_,_,_=simulation.observe()
+        simulation2.control(0.1,0.1,0.1)
+        #pos,_,_,_,_,_,_,_,_=simulation.observe()
         #print(pos)
