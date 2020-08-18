@@ -62,6 +62,7 @@ class Simulation(ShowBase):
 
     EMPTY = False
     LANDED = False
+    DONE = False
 
     gimbalX = 0
     gimbalY = 0
@@ -69,7 +70,7 @@ class Simulation(ShowBase):
     R = RE(200 * 9.806, 250 * 9.806, 7607000 / 9 * scale, 0.4)
     throttle = 0.0
     fuelMass_full = 417000 * scale
-    fuelMass_init = 0.1
+    fuelMass_init = 0.15
 
     radius = 1.8542 * scale
     length = 47 * scale
@@ -191,6 +192,7 @@ class Simulation(ShowBase):
 
         self.LANDED = False
         self.EMPTY = False
+        self.DONE = False
         self.steps = 0
         self.fuelMass = self.fuelMass_full*self.fuelMass_init
 
@@ -333,7 +335,7 @@ class Simulation(ShowBase):
         Roll, Pitch, Yaw = quat.getHpr()
         rotVel = self.rocketNP.node().getAngularVelocity()
 
-        return pos, vel, Roll, Pitch, Yaw, rotVel, self.fuelMass / self.fuelMass_full, self.EMPTY, self.LANDED
+        return pos, vel, Roll, Pitch, Yaw, rotVel, self.fuelMass / self.fuelMass_full, self.EMPTY, self.DONE, self.LANDED
 
     def control(self, throttle, gimbalX=0, gimbalY=0):
         self.throttle = throttle
@@ -353,6 +355,8 @@ class Simulation(ShowBase):
             self.EMPTY = True
         #if pos.getZ() <= 36:
         #    self.LANDED = True
+        self.LANDED = False
+        self.processContacts()
 
         P, T, rho = air_dens(pos[2])
         rocketZWorld = quat.xform(Vec3(0, 0, 1))
@@ -415,9 +419,9 @@ class Simulation(ShowBase):
         self.world.doPhysics(self.dt)
         self.steps+=1
 
-        #elf.processContacts()
-        if self.steps > 1000:
-            self.LANDED = True
+
+        if self.steps > 1500:
+            self.DONE = True
 
         telemetry = []
 
