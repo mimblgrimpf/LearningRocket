@@ -64,5 +64,5 @@ def optimize_agent(trial):
 
 if __name__ == '__main__':
     study = optuna.create_study(study_name='RocketStudy', storage='sqlite:///params.db', load_if_exists=True)
-    #study.optimize(optimize_agent, n_trials=100, n_jobs=1)
-    print(study.best_params)
+    study.optimize(optimize_agent, n_trials=1000, n_jobs=1)
+    #print(study.best_params)

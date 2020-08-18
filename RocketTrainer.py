@@ -14,7 +14,8 @@ import numpy as np
 from stable_baselines import TD3
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.common.evaluation import evaluate_policy
-from stable_baselines.ddpg.noise import NormalActionNoise
+#from stable_baselines.ddpg.noise import NormalActionNoise
+from stable_baselines.common.noise import NormalActionNoise
 from stable_baselines.td3.policies import MlpPolicy, LnMlpPolicy
 from stable_baselines.td3.policies import LnCnnPolicy, CnnPolicy
 from stable_baselines.common.callbacks import EvalCallback
@@ -22,8 +23,8 @@ from stable_baselines.common.callbacks import CheckpointCallback, EveryNTimestep
 
 from LearningRocket import LearningRocket
 from NormalizedActions import NormalizeActionWrapper
-from stable_baselines.gail import generate_expert_traj
-from stable_baselines.gail import ExpertDataset
+#from stable_baselines.gail import generate_expert_traj
+#from stable_baselines.gail import ExpertDataset
 from DummyExpert import DummyExpert
 
 class RocketTrainer:
@@ -59,8 +60,8 @@ class RocketTrainer:
                 #self.model.replay_buffer = pickle.load(file)
                 #file.close()
             else:
-                self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=370, gamma=0.94, learning_starts=3000, buffer_size=50000,
-                                learning_rate=2e-3, train_freq=2600, gradient_steps=1500, verbose=1, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
+                self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=256, gamma=0.99, learning_starts=1000, buffer_size=100000,
+                                learning_rate=3e-4, train_freq=1000, gradient_steps=1000, verbose=1, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
             print("Trainer Set for TD3")
 
     def train(self, visualize=False, lesson_length=100000,lessons=1):
@@ -172,8 +173,8 @@ class RocketTrainer:
 
 
 if __name__ == "__main__":
-    T = RocketTrainer(algorithm="TD3", load=True, agent_name="AltitudeHold")
-    T.train(visualize=False, lesson_length=100000, lessons=5)
+    T = RocketTrainer(algorithm="TD3", load=False, agent_name="10mhover")
+    T.train(visualize=False, lesson_length=100000, lessons=1)
     #T.env.render(True)
     #T.lecture()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              T.evaluate()
     #data_set = ExpertDataset(expert_path='dummy_expert_rocket.npz',batch_size=128)

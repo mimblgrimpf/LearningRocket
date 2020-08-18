@@ -59,7 +59,7 @@ class LearningRocket(gym.Env):
         # print("In LR: {}".format(action[0]))
         # self.sim.update()
 
-        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, LANDED = self.sim.observe()
+        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, DONE, LANDED = self.sim.observe()
         """observation = np.array([pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], Roll, Pitch, Yaw, rotVel[0], rotVel[1],
                                 rotVel[2], fuel])"""
 
@@ -71,11 +71,11 @@ class LearningRocket(gym.Env):
 
             #reward = -100.0 * (mag(pos) + 10.0 * mag(vel) + abs(Pitch) + abs(Yaw) + mag(rotVel)) / 100000.0
             #reward = -(abs(pos.getX()) + abs(pos.getY())) / 400.0 /2.0
-            reward = -abs(pos.getZ()-500)/500#+1
+            reward = -1000
         else:
             # reward = -0.01 * (abs(Pitch) + abs(Yaw) + mag(rotVel) + abs(pos.getX()) + abs(pos.getY())) / 100000.0
             #reward = -(abs(pos.getX()) + abs(pos.getY())) / 400.0 /2.0
-            reward = -abs(pos.getZ()-500)/500#+1
+            reward = -abs(pos.getZ()-10)/500#+1
             # reward = 0
         info = {
             "A": "B"
@@ -84,7 +84,7 @@ class LearningRocket(gym.Env):
 
     def reset(self):
         self.sim.doReset()
-        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, LANDED = self.sim.observe()
+        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, DONE, LANDED = self.sim.observe()
         #observation = np.array([pos[0], pos[1], pos[2], Roll, Pitch, Yaw])
         #observation = np.array([pos[0], pos[1], vel[0], vel[1], Pitch, Yaw, rotVel[0], rotVel[1]])
         observation = np.array([pos[2], vel[2]])
