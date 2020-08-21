@@ -170,6 +170,7 @@ class Simulation(ShowBase):
         #print(result.getNumContacts())
         if result.getNumContacts() != 0:
             self.LANDED = True
+            self.DONE = True
 
     def update(self,task):
 
