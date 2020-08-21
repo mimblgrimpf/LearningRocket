@@ -60,8 +60,8 @@ class RocketTrainer:
                 #self.model.replay_buffer = pickle.load(file)
                 #file.close()
             else:
-                self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=256, gamma=0.99, learning_starts=1000, buffer_size=100000,
-                                learning_rate=3e-4, train_freq=1000, gradient_steps=1000, verbose=1, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
+                self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=256, learning_starts=1000,
+                                learning_rate=3e-4, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
             print("Trainer Set for TD3")
 
     def train(self, visualize=False, lesson_length=100000,lessons=1):
@@ -173,8 +173,8 @@ class RocketTrainer:
 
 
 if __name__ == "__main__":
-    T = RocketTrainer(algorithm="TD3", load=False, agent_name="10mhover")
-    T.train(visualize=False, lesson_length=100000, lessons=1)
+    T = RocketTrainer(algorithm="TD3", load=False, agent_name="10mhover2")
+    T.train(visualize=False, lesson_length=100000, lessons=10)
     #T.env.render(True)
     #T.lecture()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              T.evaluate()
     #data_set = ExpertDataset(expert_path='dummy_expert_rocket.npz',batch_size=128)
