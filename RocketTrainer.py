@@ -61,7 +61,7 @@ class RocketTrainer:
                 #file.close()
             else:
                 self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=128, gamma = 0.99,
-                                learning_rate=2.5e-4, learning_starts=20000, verbose=1, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
+                                learning_rate=1e-4, learning_starts=20000, verbose=1, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
             print("Trainer Set for TD3")
 
     def train(self, visualize=False, lesson_length=100000,lessons=1):
@@ -174,7 +174,7 @@ class RocketTrainer:
 
 
 if __name__ == "__main__":
-    T = RocketTrainer(algorithm="TD3", load=True, agent_name="Doof")
+    T = RocketTrainer(algorithm="TD3", load=False, agent_name="Doof")
     T.train(visualize=False, lesson_length=500000, lessons=1)
     #T.env.render(True)
     #T.lecture()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              T.evaluate()

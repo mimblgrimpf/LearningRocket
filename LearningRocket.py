@@ -48,8 +48,8 @@ class LearningRocket(gym.Env):
             dtype=np.double)"""
 
         self.observation_space = spaces.Box(
-            low=np.array([0, -1, 0]),
-            high=np.array([1, 1, 1]),
+            low=np.array([0, -100, 0]),
+            high=np.array([1000, 100, 1]),
             dtype=np.double)
 
 
@@ -65,7 +65,7 @@ class LearningRocket(gym.Env):
                                 rotVel[2], fuel])"""
 
         #observation = np.array([pos[0], pos[1], vel[0], vel[1], Pitch, Yaw, rotVel[0], rotVel[1]])
-        observation = np.array([pos[2]/1000,vel[2]/100,fuel])
+        observation = np.array([pos[2],vel[2],fuel])
 
         if LANDED is True:
 
@@ -90,7 +90,7 @@ class LearningRocket(gym.Env):
         pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED = self.sim.observe()
         #observation = np.array([pos[0], pos[1], pos[2], Roll, Pitch, Yaw])
         #observation = np.array([pos[0], pos[1], vel[0], vel[1], Pitch, Yaw, rotVel[0], rotVel[1]])
-        observation = np.array([pos[2]/1000, vel[2]/100,fuel])
+        observation = np.array([pos[2], vel[2],fuel])
 
         return observation
 
