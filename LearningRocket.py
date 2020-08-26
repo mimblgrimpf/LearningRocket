@@ -4,6 +4,7 @@ Created on Wed Jul 22 17:23:30 2020
 
 @author: Tobias
 """
+import math
 
 import gym
 import numpy as np
@@ -47,8 +48,8 @@ class LearningRocket(gym.Env):
             dtype=np.double)"""
 
         self.observation_space = spaces.Box(
-            low=np.array([-0, -100]),
-            high=np.array([1000, 100]),
+            low=np.array([0, -1, 0]),
+            high=np.array([1, 1, 1]),
             dtype=np.double)
 
 
@@ -64,20 +65,20 @@ class LearningRocket(gym.Env):
                                 rotVel[2], fuel])"""
 
         #observation = np.array([pos[0], pos[1], vel[0], vel[1], Pitch, Yaw, rotVel[0], rotVel[1]])
-        observation = np.array([pos[2],vel[2]])
+        observation = np.array([pos[2]/1000,vel[2]/100,fuel])
 
         if LANDED is True:
 
             #reward = -100.0 * (mag(pos) + 10.0 * mag(vel) + abs(Pitch) + abs(Yaw) + mag(rotVel)) / 100000.0
             #reward = -(abs(pos.getX()) + abs(pos.getY())) / 400.0 /2.0
-            reward = -1000
+            #reward = -1000
+
+            reward = -abs(pos.getZ() - 250) / 500
         else:
             # reward = -0.01 * (abs(Pitch) + abs(Yaw) + mag(rotVel) + abs(pos.getX()) + abs(pos.getY())) / 100000.0
             #reward = -(abs(pos.getX()) + abs(pos.getY())) / 400.0 /2.0
-            #if pos.getZ() >= 10:
-            reward = -abs(pos.getZ()-10)/500+1
-            #else:
-            #    reward = -abs(pos.getZ()-10)/100
+            #reward = -abs(pos.getZ()-45)/500+1-np.exp((30-pos.getZ())*0.5)*10
+            reward = -abs(pos.getZ() - 250) / 500
             # reward = 0
         info = {
             "A": "B"
@@ -89,7 +90,7 @@ class LearningRocket(gym.Env):
         pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED = self.sim.observe()
         #observation = np.array([pos[0], pos[1], pos[2], Roll, Pitch, Yaw])
         #observation = np.array([pos[0], pos[1], vel[0], vel[1], Pitch, Yaw, rotVel[0], rotVel[1]])
-        observation = np.array([pos[2], vel[2]])
+        observation = np.array([pos[2]/1000, vel[2]/100,fuel])
 
         return observation
 

@@ -70,7 +70,7 @@ class Simulation(ShowBase):
     R = RE(200 * 9.806, 250 * 9.806, 7607000 / 9 * scale, 0.4)
     throttle = 0.0
     fuelMass_full = 417000 * scale
-    fuelMass_init = 0.15
+    fuelMass_init = 0.10
 
     radius = 1.8542 * scale
     length = 47 * scale
@@ -170,7 +170,7 @@ class Simulation(ShowBase):
         #print(result.getNumContacts())
         if result.getNumContacts() != 0:
             self.LANDED = True
-            self.DONE = True
+            #self.DONE = True
 
     def update(self,task):
 
@@ -243,7 +243,7 @@ class Simulation(ShowBase):
         self.rocketNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Cylinder'))
         self.rocketNP.node().setMass(27200 * self.scale)
         self.rocketNP.node().addShape(shape)
-        self.rocketNP.setPos(20,20,self.height)
+        self.rocketNP.setPos(20,20,250)
         #self.rocketNP.setPos(r.randrange(-self.lateralError, self.lateralError, 1), r.randrange(-self.lateralError, self.lateralError, 1), self.height)
         # self.rocketNP.setPos(0, 0, self.length*10)
         self.rocketNP.setCollideMask(BitMask32.allOn())
@@ -387,7 +387,7 @@ class Simulation(ShowBase):
             self.gimbalY = -self.rollPID.control(Pitch, rotVel.getX(), -rollTgt)
 
         thrust, mdot = self.R.setThrottle(self.throttle)
-
+        self.thrust = thrust[2]
         quat = self.rocketNP.getTransform().getQuat()
         quatGimbal = TransformState.makeHpr(Vec3(0, self.gimbalY, self.gimbalX)).getQuat()
         thrust = quatGimbal.xform(Vec3(thrust[0], thrust[1], thrust[2]))
@@ -421,7 +421,7 @@ class Simulation(ShowBase):
         self.steps+=1
 
 
-        if self.steps > 1500:
+        if self.steps > 1000:
             self.DONE = True
 
         telemetry = []

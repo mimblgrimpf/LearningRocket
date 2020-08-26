@@ -38,7 +38,7 @@ def optimize_agent(trial):
     action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
 
     model = TD3(MlpPolicy, env, action_noise=action_noise,policy_kwargs = dict(layers=[400, 300]))
-    model.learn(10000)
+    model.learn(100000)
 
     rewards = []
     n_episodes, reward_sum = 0, 0.0

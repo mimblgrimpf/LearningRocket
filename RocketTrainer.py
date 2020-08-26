@@ -38,7 +38,7 @@ class RocketTrainer:
         self.eval_env = LearningRocket(visualize=True)
         self.eval_env = NormalizeActionWrapper(self.eval_env)
         self.eval_callback = EvalCallback(self.eval_env, best_model_save_path='Agent007',
-                                     log_path='./logs/', eval_freq=50000,
+                                     log_path='./logs/', eval_freq=100000,
                                      deterministic=True, render=False,n_eval_episodes=1)
         kai_policy = dict(act_fun=tf.nn.tanh, net_arch=[400, 300])
         #check_env(self.env, warn=True)
@@ -60,8 +60,8 @@ class RocketTrainer:
                 #self.model.replay_buffer = pickle.load(file)
                 #file.close()
             else:
-                self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=256, learning_starts=1000,
-                                learning_rate=3e-4, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
+                self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=128, gamma = 0.99,
+                                learning_rate=2.5e-4, learning_starts=20000, verbose=1, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
             print("Trainer Set for TD3")
 
     def train(self, visualize=False, lesson_length=100000,lessons=1):
@@ -69,7 +69,7 @@ class RocketTrainer:
         #self.env.render(visualize)
         for i in range(lessons):
             print("*sigh* here we go again.")
-            self.model.learn(total_timesteps=lesson_length)#,callback=self.eval_callback)#,callback=self.eval_callback)
+            self.model.learn(total_timesteps=lesson_length,callback=self.eval_callback)#,callback=self.eval_callback)
             self.model.save(self.agent_name)
             a_file = open('replay_buffer', 'wb')
             pickle.dump(self.model.replay_buffer, a_file)
@@ -107,6 +107,7 @@ class RocketTrainer:
         while done is False:
             action, states = self.model.predict(obs)
             obs, reward, done, info = self.eval_env.step(action)
+            re_obs = self.eval_env.rescale_observation((obs))
             #obs = self.eval_env.rescale_observation(obs)
             action = self.eval_env.rescale_action(action)
             reward_list.append(reward)
@@ -116,7 +117,7 @@ class RocketTrainer:
             #for i in range(3):
             #    action_list[i].append(action[i])
             for i in range(obs.size):
-                data[i].append(obs[i])
+                data[i].append(re_obs[i])
             steps += 1
             Time.append(steps)
 
@@ -173,8 +174,8 @@ class RocketTrainer:
 
 
 if __name__ == "__main__":
-    T = RocketTrainer(algorithm="TD3", load=False, agent_name="10mhover2")
-    T.train(visualize=False, lesson_length=100000, lessons=10)
+    T = RocketTrainer(algorithm="TD3", load=True, agent_name="Doof")
+    T.train(visualize=False, lesson_length=500000, lessons=1)
     #T.env.render(True)
     #T.lecture()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              T.evaluate()
     #data_set = ExpertDataset(expert_path='dummy_expert_rocket.npz',batch_size=128)
