@@ -15,13 +15,11 @@ n_cpu = 1
 def optimize_TD3(trial):
     """ Learning hyperparamters we want to optimise"""
     return {
-        'gamma': trial.suggest_loguniform('gamma', 0.9, 0.9999),
-        'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.),
-        'buffer_size': trial.suggest_loguniform('buffer_size',1000,1000000),
-        'learning_starts':trial.suggest_loguniform('learning_starts',1000,10000),
-        'batch_size':trial.suggest_loguniform('batch_size',100,500),
-        'train_freq':trial.suggest_loguniform('train_freq',1000,10000),
-        'gradient_steps':trial.suggest_loguniform('gradient_steps',100,10000),
+        'learning_rate': trial.suggest_loguniform('learning_rate',1e-5,1e-2),
+        #'batch_size': trial.suggest_int('batch_size',1,1000),
+        #'gamma': trial.suggest_loguniform('gamma', 0.9, 0.999),
+        #'train_freq':trial.suggest_loguniform('train_freq',100,10000),
+        #'gradient_steps':trial.suggest_loguniform('gradient_steps',100,10000),
 
     }
 
@@ -38,7 +36,7 @@ def optimize_agent(trial):
     action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
 
     model = TD3(MlpPolicy, env, action_noise=action_noise,policy_kwargs = dict(layers=[400, 300]))
-    model.learn(100000)
+    model.learn(50000)
 
     rewards = []
     n_episodes, reward_sum = 0, 0.0
@@ -63,6 +61,6 @@ def optimize_agent(trial):
 
 
 if __name__ == '__main__':
-    study = optuna.create_study(study_name='RocketStudy', storage='sqlite:///params.db', load_if_exists=True)
-    #study.optimize(optimize_agent, n_trials=1000, n_jobs=1)
+    study = optuna.create_study(study_name='LRfor150', storage='sqlite:///params.db', load_if_exists=True)
+    study.optimize(optimize_agent, n_trials=1000, n_jobs=1)
     print(study.best_params)

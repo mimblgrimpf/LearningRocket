@@ -11,12 +11,16 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 #from stable_baselines import SAC
-from stable_baselines import TD3
+from stable_baselines import TD3, PPO2
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.common.evaluation import evaluate_policy
 #from stable_baselines.ddpg.noise import NormalActionNoise
 from stable_baselines.common.noise import NormalActionNoise
+from stable_baselines.common.vec_env import VecNormalize, SubprocVecEnv, DummyVecEnv
+from stable_baselines.common.cmd_util import make_vec_env
+from stable_baselines.gail import generate_expert_traj
 from stable_baselines.td3.policies import MlpPolicy, LnMlpPolicy
+from stable_baselines.common.policies import MlpPolicy as PPOMlpPolicy
 from stable_baselines.td3.policies import LnCnnPolicy, CnnPolicy
 from stable_baselines.common.callbacks import EvalCallback
 from stable_baselines.common.callbacks import CheckpointCallback, EveryNTimesteps
@@ -32,13 +36,19 @@ class RocketTrainer:
     def __init__(self, algorithm="SAC", load=True, agent_name="Agent001"):
         self.agent_name = agent_name
 
-        self.env = LearningRocket(visualize=False)
-        self.env = NormalizeActionWrapper(self.env)
+        #self.env = LearningRocket(visualize=False)
+        #self.env = NormalizeActionWrapper(self.env)
 
-        self.eval_env = LearningRocket(visualize=True)
-        self.eval_env = NormalizeActionWrapper(self.eval_env)
+        #self.eval_env = LearningRocket(visualize=True)
+        #self.eval_env = NormalizeActionWrapper(self.eval_env)
+
+        #self.env = SubprocVecEnv([lambda: LearningRocket(visualize=False) for i in range(4)])
+        self.env = VecNormalize(make_vec_env(LearningRocket,n_envs=16))#[lambda: LearningRocket(visualize=False) for i in range(16)]))
+        self.eval_env = VecNormalize(DummyVecEnv([lambda: LearningRocket(visualize=True) for i in range(1)]))
+
+        #self.eval_env = VecNormalize(self.eval_env)
         self.eval_callback = EvalCallback(self.eval_env, best_model_save_path='Agent007',
-                                     log_path='./logs/', eval_freq=100000,
+                                     log_path='./logs/', eval_freq=10000,
                                      deterministic=True, render=False,n_eval_episodes=1)
         kai_policy = dict(act_fun=tf.nn.tanh, net_arch=[400, 300])
         #check_env(self.env, warn=True)
@@ -60,9 +70,17 @@ class RocketTrainer:
                 #self.model.replay_buffer = pickle.load(file)
                 #file.close()
             else:
-                self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=128, gamma = 0.99,
+                self.model = TD3(MlpPolicy, self.env, action_noise=action_noise, batch_size=768, gamma = 0.95,
                                 learning_rate=1e-4, learning_starts=20000, verbose=1, tensorboard_log="./rocket_tensorboard/", policy_kwargs = dict(layers=[400, 300]))
             print("Trainer Set for TD3")
+        elif algorithm == "PPO2":
+            if load is True:
+                self.model = PPO2.load(agent_name, env=self.env, tensorboard_log="./rocket_tensorboard/")
+            else:
+                self.model = PPO2(PPOMlpPolicy, self.env, n_steps=1024, nminibatches=32, lam=0.98, gamma=0.999,
+                                  noptepochs=4,ent_coef=0.01,verbose=1, tensorboard_log="./rocket_tensorboard/",
+                                  policy_kwargs = dict(layers=[400, 300]))
+                print("Trainer set for PPO2. I am speed.")
 
     def train(self, visualize=False, lesson_length=100000,lessons=1):
         print("Today I'm teaching rocket science. How hard can it be?")
@@ -71,12 +89,12 @@ class RocketTrainer:
             print("*sigh* here we go again.")
             self.model.learn(total_timesteps=lesson_length,callback=self.eval_callback)#,callback=self.eval_callback)
             self.model.save(self.agent_name)
-            a_file = open('replay_buffer', 'wb')
-            pickle.dump(self.model.replay_buffer, a_file)
-            a_file.close()
+            #a_file = open('replay_buffer', 'wb')
+            #pickle.dump(self.model.replay_buffer, a_file)
+            #a_file.close()
             print("{} Batches Done.".format(i+1))
             # plt.close()
-            mean_reward, std_reward = evaluate_policy(self.model, self.env, n_eval_episodes=10)
+            mean_reward, std_reward = evaluate_policy(self.model, self.eval_env, n_eval_episodes=1)
             print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
         self.evaluate()
 
@@ -103,21 +121,21 @@ class RocketTrainer:
         for i in range(obs.size):
             data.append([])
 
-        done = False
-        while done is False:
+        for j in range(1000):
             action, states = self.model.predict(obs)
+            #action = action*0.9+0.1
             obs, reward, done, info = self.eval_env.step(action)
-            re_obs = self.eval_env.rescale_observation((obs))
-            #obs = self.eval_env.rescale_observation(obs)
-            action = self.eval_env.rescale_action(action)
-            reward_list.append(reward)
-            cumulativeReward += reward
+            #re_obs = self.eval_env.rescale_observation((obs))
+            #obs = self.eval_env.get_original_obs()
+            #action = self.eval_env.rescale_action(action)
+            reward_list.append(reward[0])
+            cumulativeReward += reward[0]
             reward_sum.append(cumulativeReward)
             action_list[0].append(action[0])
             #for i in range(3):
             #    action_list[i].append(action[i])
             for i in range(obs.size):
-                data[i].append(re_obs[i])
+                data[i].append(obs[0][i])
             steps += 1
             Time.append(steps)
 
@@ -174,11 +192,14 @@ class RocketTrainer:
 
 
 if __name__ == "__main__":
-    T = RocketTrainer(algorithm="TD3", load=False, agent_name="Doof")
-    T.train(visualize=False, lesson_length=500000, lessons=1)
+    T = RocketTrainer(algorithm="PPO2", load=False, agent_name="Doof")
+    T.train(visualize=False, lesson_length=2000000, lessons=1)
     #T.env.render(True)
     #T.lecture()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              T.evaluate()
     #data_set = ExpertDataset(expert_path='dummy_expert_rocket.npz',batch_size=128)
     #T.model.pretrain(data_set, n_epochs=10000)
     #T.model.save(T.agent_name)
+
+    #mean_reward, std_reward = evaluate_policy(T.model, T.eval_env, n_eval_episodes=10)
+    #print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     #T.evaluate()

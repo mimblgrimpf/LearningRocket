@@ -72,14 +72,13 @@ class LearningRocket(gym.Env):
             #reward = -100.0 * (mag(pos) + 10.0 * mag(vel) + abs(Pitch) + abs(Yaw) + mag(rotVel)) / 100000.0
             #reward = -(abs(pos.getX()) + abs(pos.getY())) / 400.0 /2.0
             #reward = -1000
-
             reward = -abs(pos.getZ() - 250) / 500
         else:
-            # reward = -0.01 * (abs(Pitch) + abs(Yaw) + mag(rotVel) + abs(pos.getX()) + abs(pos.getY())) / 100000.0
+            #reward = -0.01 * (abs(Pitch) + abs(Yaw) + mag(rotVel) + abs(pos.getX()) + abs(pos.getY())) / 100000.0
             #reward = -(abs(pos.getX()) + abs(pos.getY())) / 400.0 /2.0
             #reward = -abs(pos.getZ()-45)/500+1-np.exp((30-pos.getZ())*0.5)*10
             reward = -abs(pos.getZ() - 250) / 500
-            # reward = 0
+            #reward = 0
         info = {
             "A": "B"
         }
