@@ -48,7 +48,7 @@ class LearningRocket(gym.Env):
             dtype=np.double)"""
 
         self.observation_space = spaces.Box(
-            low=np.array([0, -100, 0]),
+            low=np.array([-1000, -100, 0]),
             high=np.array([1000, 100, 1]),
             dtype=np.double)
 
@@ -60,24 +60,25 @@ class LearningRocket(gym.Env):
         # print("In LR: {}".format(action[0]))
         # self.sim.update()
 
-        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED = self.sim.observe()
+        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED, offset = self.sim.observe()
         """observation = np.array([pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], Roll, Pitch, Yaw, rotVel[0], rotVel[1],
                                 rotVel[2], fuel])"""
 
         #observation = np.array([pos[0], pos[1], vel[0], vel[1], Pitch, Yaw, rotVel[0], rotVel[1]])
-        observation = np.array([pos[2],vel[2],fuel])
+        #observation = np.array([pos[2],vel[2],fuel])
+        observation = np.array([offset, vel[2], fuel])
 
         if LANDED is True:
 
             #reward = -100.0 * (mag(pos) + 10.0 * mag(vel) + abs(Pitch) + abs(Yaw) + mag(rotVel)) / 100000.0
             #reward = -(abs(pos.getX()) + abs(pos.getY())) / 400.0 /2.0
             #reward = -1000
-            reward = -abs(pos.getZ() - 250) / 500
+            reward = -abs(offset) / 200
         else:
             #reward = -0.01 * (abs(Pitch) + abs(Yaw) + mag(rotVel) + abs(pos.getX()) + abs(pos.getY())) / 100000.0
             #reward = -(abs(pos.getX()) + abs(pos.getY())) / 400.0 /2.0
             #reward = -abs(pos.getZ()-45)/500+1-np.exp((30-pos.getZ())*0.5)*10
-            reward = -abs(pos.getZ() - 250) / 500
+            reward = -abs(offset) / 200
             #reward = 0
         info = {
             "A": "B"
@@ -86,10 +87,11 @@ class LearningRocket(gym.Env):
 
     def reset(self):
         self.sim.doReset()
-        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED = self.sim.observe()
+        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED, offset = self.sim.observe()
         #observation = np.array([pos[0], pos[1], pos[2], Roll, Pitch, Yaw])
         #observation = np.array([pos[0], pos[1], vel[0], vel[1], Pitch, Yaw, rotVel[0], rotVel[1]])
-        observation = np.array([pos[2], vel[2],fuel])
+        #observation = np.array([pos[2], vel[2],fuel])
+        observation = np.array([offset, vel[2], fuel])
 
         return observation
 

@@ -66,6 +66,7 @@ class Simulation(ShowBase):
 
     gimbalX = 0
     gimbalY = 0
+    targetAlt = 150
 
     R = RE(200 * 9.806, 250 * 9.806, 7607000 / 9 * scale, 0.4)
     throttle = 0.0
@@ -199,6 +200,8 @@ class Simulation(ShowBase):
 
     def setup(self):
 
+        self.targetAlt = r.randrange(100,300)
+
         if self.VISUALIZE is True:
             self.worldNP = self.render.attachNewNode('World')
 
@@ -243,7 +246,8 @@ class Simulation(ShowBase):
         self.rocketNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Cylinder'))
         self.rocketNP.node().setMass(27200 * self.scale)
         self.rocketNP.node().addShape(shape)
-        self.rocketNP.setPos(20,20,250)
+        #self.rocketNP.setPos(20,20,250)
+        self.rocketNP.setPos(20, 20, r.randrange(100,300))
         #self.rocketNP.setPos(r.randrange(-self.lateralError, self.lateralError, 1), r.randrange(-self.lateralError, self.lateralError, 1), self.height)
         # self.rocketNP.setPos(0, 0, self.length*10)
         self.rocketNP.setCollideMask(BitMask32.allOn())
@@ -335,8 +339,9 @@ class Simulation(ShowBase):
         quat = self.rocketNP.getTransform().getQuat()
         Roll, Pitch, Yaw = quat.getHpr()
         rotVel = self.rocketNP.node().getAngularVelocity()
+        offset = self.targetAlt-pos.getZ()
 
-        return pos, vel, Roll, Pitch, Yaw, rotVel, self.fuelMass / self.fuelMass_full, self.EMPTY, self.DONE, self.LANDED
+        return pos, vel, Roll, Pitch, Yaw, rotVel, self.fuelMass / self.fuelMass_full, self.EMPTY, self.DONE, self.LANDED, offset
 
     def control(self, throttle, gimbalX=0, gimbalY=0):
         self.throttle = throttle
@@ -438,6 +443,7 @@ class Simulation(ShowBase):
         telemetry.append('Rot: {},{},{}'.format(int(rotVel.getX()), int(rotVel.getY()), int(rotVel.getZ())))
         telemetry.append('LANDED: {}'.format(self.LANDED))
         telemetry.append('Time: {}'.format(self.steps*self.dt))
+        telemetry.append('TARGET: {}'.format(self.targetAlt))
         #print(pos)
         if self.VISUALIZE is True:
             self.ostData.setText('\n'.join(telemetry))
