@@ -31,6 +31,10 @@ from NormalizedActions import NormalizeActionWrapper
 #from stable_baselines.gail import ExpertDataset
 from DummyExpert import DummyExpert
 
+
+
+
+
 class RocketTrainer:
 
     def __init__(self, algorithm="SAC", load=True, agent_name="Agent001"):
@@ -43,9 +47,9 @@ class RocketTrainer:
         #self.eval_env = NormalizeActionWrapper(self.eval_env)
 
         #self.env = SubprocVecEnv([lambda: LearningRocket(visualize=False) for i in range(4)])
-        self.env = VecNormalize(make_vec_env(LearningRocket,n_envs=16))#[lambda: LearningRocket(visualize=False) for i in range(16)]))
-        self.eval_env = VecNormalize(DummyVecEnv([lambda: LearningRocket(visualize=True) for i in range(1)]))
-
+        self.env = make_vec_env(LearningRocket,n_envs=16)#[lambda: LearningRocket(visualize=False) for i in range(16)]))
+        #self.eval_env = VecNormalize(DummyVecEnv([lambda: LearningRocket(visualize=True) for i in range(1)]))
+        self.eval_env = make_vec_env(lambda: LearningRocket(visualize=True),n_envs=1)
         #self.eval_env = VecNormalize(self.eval_env)
         self.eval_callback = EvalCallback(self.eval_env, best_model_save_path='Agent007',
                                      log_path='./logs/', eval_freq=10000,
@@ -76,10 +80,24 @@ class RocketTrainer:
         elif algorithm == "PPO2":
             if load is True:
                 self.model = PPO2.load(agent_name, env=self.env, tensorboard_log="./rocket_tensorboard/")
+                self.eval_env = VecNormalize.load(self.agent_name + "vEnv", self.eval_env)
+                #self.eval_env.clip_obs = 500
+                #self.env = VecNormalize(self.env)
+                self.env  = VecNormalize.load(self.agent_name + "vEnv", self.env)
+                #self.env.clip_obs = 500
+                #self.env.norm_obs = False
+                #self.eval_env.norm_obs = False
             else:
                 self.model = PPO2(PPOMlpPolicy, self.env, n_steps=1024, nminibatches=32, lam=0.98, gamma=0.999,
                                   noptepochs=4,ent_coef=0.01,verbose=1, tensorboard_log="./rocket_tensorboard/",
                                   policy_kwargs = dict(layers=[400, 300]))
+                self.eval_env = VecNormalize(self.eval_env)
+                self.env = VecNormalize(self.env)
+                #self.eval_env.clip_obs = 500
+                #self.env.clip_obs = 500
+                #self.env.norm_obs=False
+                #self.eval_env.norm_obs=False
+
                 print("Trainer set for PPO2. I am speed.")
 
     def train(self, visualize=False, lesson_length=100000,lessons=1):
@@ -89,6 +107,8 @@ class RocketTrainer:
             print("*sigh* here we go again.")
             self.model.learn(total_timesteps=lesson_length,callback=self.eval_callback)#,callback=self.eval_callback)
             self.model.save(self.agent_name)
+            self.env.save(self.agent_name + "vEnv")
+            #self.eval_env = VecNormalize.load(self.agent_name + "vEnv",self.eval_env)
             #a_file = open('replay_buffer', 'wb')
             #pickle.dump(self.model.replay_buffer, a_file)
             #a_file.close()
@@ -105,9 +125,16 @@ class RocketTrainer:
         generate_expert_traj(teacher.teach, 'dummy_expert_rocket', self.env, n_episodes=10)
 
     def evaluate(self):
+        self.eval_env.training = False
+        self.eval_env.norm_reward = False
+
+
         print("Watch this!")
         obs = self.eval_env.reset()
         #self.eval_env.render(True)
+
+        mean_reward, std_reward = evaluate_policy(self.model, self.eval_env, n_eval_episodes=1)
+        print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 
         reward_list = []
         reward_sum: List[float] = []
@@ -122,8 +149,7 @@ class RocketTrainer:
             data.append([])
 
         for j in range(1000):
-            action, states = self.model.predict(obs)
-            #action = action*0.9+0.1
+            action, states = self.model.predict(obs,deterministic=True)
             obs, reward, done, info = self.eval_env.step(action)
             #re_obs = self.eval_env.rescale_observation((obs))
             #obs = self.eval_env.get_original_obs()
@@ -192,8 +218,8 @@ class RocketTrainer:
 
 
 if __name__ == "__main__":
-    T = RocketTrainer(algorithm="PPO2", load=False, agent_name="Doof")
-    T.train(visualize=False, lesson_length=2000000, lessons=1)
+    T = RocketTrainer(algorithm="PPO2", load=True, agent_name="Doof")
+    #T.train(visualize=False, lesson_length=5000000, lessons=1)
     #T.env.render(True)
     #T.lecture()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              T.evaluate()
     #data_set = ExpertDataset(expert_path='dummy_expert_rocket.npz',batch_size=128)
@@ -202,4 +228,4 @@ if __name__ == "__main__":
 
     #mean_reward, std_reward = evaluate_policy(T.model, T.eval_env, n_eval_episodes=10)
     #print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
-    #T.evaluate()
+    T.evaluate()
