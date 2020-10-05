@@ -29,7 +29,7 @@ from panda3d.core import Vec4
 from Environ_dependancies import air_dens
 from PID import PID
 from RocketEngine import RocketEngine as RE
-
+from LandingRockets.NeuralNetwork import NeuralNetwork
 
 def dot(a, b):
     return a.x * b.x + a.y * b.y + a.z * b.z
@@ -58,6 +58,10 @@ class Simulation(ShowBase):
     rollPID = PID(10, 0, 1000, -10, 10)
     XPID = PID(0.2, 0, 0.8, -10, 10)
     YPID = PID(0.2, 0, 0.8, -10, 10)
+    vulcain = NeuralNetwork()
+    tau = 0.5
+    Valves=[]
+
     CONTROL = False
 
     EMPTY = False
@@ -120,6 +124,7 @@ class Simulation(ShowBase):
             align=TextNode.ALeft)
 
         self.fuelMass = self.fuelMass_full * self.fuelMass_init
+        self.vulcain.load_existing_model(path="LandingRockets/",model_name="140k_samples_1024neurons_3layers_l2-0.000001")
 
 
 
@@ -201,6 +206,8 @@ class Simulation(ShowBase):
     def setup(self):
 
         self.targetAlt = r.randrange(100,300)
+        self.Valves = np.array([0.15,0.2,0.15])
+        self.EngObs = self.vulcain.predict_data_point(np.array(self.Valves).reshape(1,-1))
 
         if self.VISUALIZE is True:
             self.worldNP = self.render.attachNewNode('World')
@@ -341,13 +348,18 @@ class Simulation(ShowBase):
         rotVel = self.rocketNP.node().getAngularVelocity()
         offset = self.targetAlt-pos.getZ()
 
-        return pos, vel, Roll, Pitch, Yaw, rotVel, self.fuelMass / self.fuelMass_full, self.EMPTY, self.DONE, self.LANDED, offset
+        return pos, vel, Roll, Pitch, Yaw, rotVel, self.fuelMass / self.fuelMass_full, self.EMPTY, self.DONE, self.LANDED, offset, self.EngObs[0], self.Valves
 
-    def control(self, throttle, gimbalX=0, gimbalY=0):
-        self.throttle = throttle
-        self.gimbalX = gimbalX
-        self.gimbalY = gimbalY
+    def control(self,ValveCommands):
 
+        self.gimbalX = 0
+        self.gimbalY = 0
+
+        self.Valves = ValveCommands-(ValveCommands-self.Valves)*np.exp(-self.dt/self.tau)
+
+        self.EngObs = self.vulcain.predict_data_point(np.array(self.Valves).reshape(1,-1 ))
+        #Brennkammerdruck, Gaskammertemp, H2Massenstrom, LOX MAssentrom, Schub
+        #Bar,K,Kg/s,Kg/s,kN
         #self.dt = globalClock.getDt()
 
         pos = self.rocketNP.getPos()
@@ -391,12 +403,16 @@ class Simulation(ShowBase):
             rollTgt = self.YPID.control(pos.getY(), vel.getY(), 0)
             self.gimbalY = -self.rollPID.control(Pitch, rotVel.getX(), -rollTgt)
 
-        thrust, mdot = self.R.setThrottle(self.throttle)
-        self.thrust = thrust[2]
+
+
+        self.thrust = self.EngObs[0][4]*1000
+        #print(self.EngObs)
         quat = self.rocketNP.getTransform().getQuat()
         quatGimbal = TransformState.makeHpr(Vec3(0, self.gimbalY, self.gimbalX)).getQuat()
-        thrust = quatGimbal.xform(Vec3(thrust[0], thrust[1], thrust[2]))
+        thrust = quatGimbal.xform(Vec3(0, 0, self.thrust))
         thrustWorld = quat.xform(thrust)
+
+        #print(thrustWorld)
 
         self.npDragForce.reset()
         self.npDragForce.drawArrow2d(Vec3(0, 0, 0), quat.conjugate().xform(drag) / 1000, 45, 2)
@@ -414,9 +430,10 @@ class Simulation(ShowBase):
 
         self.rocketNP.node().applyForce(drag, Vec3(0, 0, 0))
         self.rocketNP.node().applyForce(lift, Vec3(0, 0, 0))
+        #print(self.EMPTY,self.LANDED)
         if self.EMPTY is False & self.LANDED is False:
             self.rocketNP.node().applyForce(thrustWorld, quat.xform(Vec3(0, 0, -1 / 2 * self.length)))
-            self.updateRocket(mdot, self.dt)
+            self.updateRocket(self.EngObs[0][2]+self.EngObs[0][3], self.dt)
         self.rocketNP.node().setActive(True)
         self.fuelNP.node().setActive(True)
 
@@ -431,7 +448,7 @@ class Simulation(ShowBase):
 
         telemetry = []
 
-        telemetry.append('Throttle: {}%'.format(int(self.throttle * 100)))
+        telemetry.append('Thrust: {}'.format(int(self.EngObs[0][4])))
         telemetry.append('Fuel: {}%'.format(int(self.fuelMass / self.fuelMass_full * 100.0)))
         telemetry.append('Gimbal: {}'.format(int(self.gimbalX)) + ',{}'.format(int(self.gimbalY)))
         telemetry.append('AoA: {}'.format(int(AoA / math.pi * 180.0)))
@@ -463,8 +480,8 @@ class Simulation(ShowBase):
 
 
 if __name__ == "__main__":
-    simulation = Simulation(VISUALIZE=False)
-    simulation.CONTROL=True
+    #simulation = Simulation(VISUALIZE=False)
+    #simulation.CONTROL=True
     simulation2 = Simulation(VISUALIZE=True)
     simulation2.CONTROL = False
     #simulation.taskMgr.add(simulation.update, 'update')
@@ -473,7 +490,7 @@ if __name__ == "__main__":
 
     #simulation.run()
     for i in range(10000):
-        simulation.control(0.1,0.1,0.1)
-        simulation2.control(0.1,0.1,0.1)
+        #simulation.control([0.1,0.1,0.1])
+        simulation2.control(np.asarray([0.15,0.15,0.15]).reshape(1,-1))
         #pos,_,_,_,_,_,_,_,_=simulation.observe()
         #print(pos)

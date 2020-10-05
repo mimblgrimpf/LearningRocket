@@ -29,7 +29,7 @@ class LearningRocket(gym.Env):
         # They must be gym.spaces objects
         # Example when using discrete actions:
         #self.action_space = spaces.Box(low=np.array([0.1, -10, -10]), high=np.array([1, 10, 10]), dtype=np.double)
-        self.action_space = spaces.Box(low=np.array([0.1]), high=np.array([1]), dtype=np.double)
+        self.action_space = spaces.Box(low=np.array([0.15,0.15,0.15]), high=np.array([1,1,1]), dtype=np.double)
         # Example for using image as input:
         """self.observation_space = spaces.Box(
             low=np.array([-400, -400, 0, -100, -100, -100, -180, -180, -180, -2, -2, -2, 0]),
@@ -48,38 +48,41 @@ class LearningRocket(gym.Env):
             dtype=np.double)"""
 
         self.observation_space = spaces.Box(
-            low=np.array([-1000, -100, 0]),
-            high=np.array([1000, 100, 1]),
+            low=np.array([-1000, -100, 0, -100, -100, -100, -100, -100,0.15,0.15,0.15]),
+            high=np.array([1000, 100, 1, 200, 2000, 100, 500, 2000,1,1,1]),
             dtype=np.double)
 
 
         # base.run()
 
     def step(self, action):
-        self.sim.control(action[0])#, action[1], action[2])
+        self.sim.control(action)#, action[1], action[2])
         # print("In LR: {}".format(action[0]))
         # self.sim.update()
 
-        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED, offset = self.sim.observe()
+        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED, offset, EngObs, valves = self.sim.observe()
         """observation = np.array([pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], Roll, Pitch, Yaw, rotVel[0], rotVel[1],
                                 rotVel[2], fuel])"""
 
         #observation = np.array([pos[0], pos[1], vel[0], vel[1], Pitch, Yaw, rotVel[0], rotVel[1]])
         #observation = np.array([pos[2],vel[2],fuel])
-        observation = np.array([offset, vel[2], fuel])
+        observation = np.array([offset, vel[2], fuel, EngObs[0], EngObs[1], EngObs[2], EngObs[3], EngObs[4],
+                                valves[0],valves[1],valves[2]])
+        #print(observation)
 
-        if LANDED is True:
+        #Height Control
+        reward = -abs(offset) / 40
 
-            #reward = -100.0 * (mag(pos) + 10.0 * mag(vel) + abs(Pitch) + abs(Yaw) + mag(rotVel)) / 100000.0
-            #reward = -(abs(pos.getX()) + abs(pos.getY())) / 400.0 /2.0
-            #reward = -1000
-            reward = -abs(offset) / 200
-        else:
-            #reward = -0.01 * (abs(Pitch) + abs(Yaw) + mag(rotVel) + abs(pos.getX()) + abs(pos.getY())) / 100000.0
-            #reward = -(abs(pos.getX()) + abs(pos.getY())) / 400.0 /2.0
-            #reward = -abs(pos.getZ()-45)/500+1-np.exp((30-pos.getZ())*0.5)*10
-            reward = -abs(offset) / 200
-            #reward = 0
+        #Mixture Control
+        mixture = EngObs[3]/EngObs[2]
+        reward -= abs(mixture-5.5) *2
+
+        #Temp Control
+        reward -= abs(EngObs[1]-900) / 500
+
+        if EngObs[1] > 900:
+            reward -= 10
+
         info = {
             "A": "B"
         }
@@ -87,11 +90,12 @@ class LearningRocket(gym.Env):
 
     def reset(self):
         self.sim.doReset()
-        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED, offset = self.sim.observe()
+        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED, offset, EngObs,valves = self.sim.observe()
         #observation = np.array([pos[0], pos[1], pos[2], Roll, Pitch, Yaw])
         #observation = np.array([pos[0], pos[1], vel[0], vel[1], Pitch, Yaw, rotVel[0], rotVel[1]])
         #observation = np.array([pos[2], vel[2],fuel])
-        observation = np.array([offset, vel[2], fuel])
+        observation = np.array([offset, vel[2], fuel, EngObs[0], EngObs[1], EngObs[2], EngObs[3], EngObs[4],
+                                valves[0],valves[1],valves[2]])
 
         return observation
 
