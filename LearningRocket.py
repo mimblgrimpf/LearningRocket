@@ -68,17 +68,24 @@ class LearningRocket(gym.Env):
         #observation = np.array([pos[2],vel[2],fuel])
         observation = np.array([offset, vel[2], fuel, EngObs[0], EngObs[1], EngObs[2], EngObs[3], EngObs[4],
                                 valves[0],valves[1],valves[2]])
+
+        #print(action[0],valves[0])
         #print(observation)
 
         #Height Control
-        reward = -abs(offset) / 40
+        reward = -abs(offset) / 10
 
         #Mixture Control
         mixture = EngObs[3]/EngObs[2]
         reward -= abs(mixture-5.5) *2
 
         #Temp Control
-        reward -= abs(EngObs[1]-900) / 500
+        reward -= abs(EngObs[1]-900) / 1000
+
+        #Don't jitter the Valves
+        ValveChange = abs(action[0]-valves[0])+abs(action[1]-valves[1])+abs(action[2]-valves[2])
+        reward -= ValveChange*2
+
 
         if EngObs[1] > 900:
             reward -= 10

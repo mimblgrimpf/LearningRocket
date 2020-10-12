@@ -254,7 +254,7 @@ class Simulation(ShowBase):
         self.rocketNP.node().setMass(27200 * self.scale)
         self.rocketNP.node().addShape(shape)
         #self.rocketNP.setPos(20,20,250)
-        self.rocketNP.setPos(20, 20, r.randrange(100,300))
+        self.rocketNP.setPos(20, 20, r.randrange(100, 300)+200)
         #self.rocketNP.setPos(r.randrange(-self.lateralError, self.lateralError, 1), r.randrange(-self.lateralError, self.lateralError, 1), self.height)
         # self.rocketNP.setPos(0, 0, self.length*10)
         self.rocketNP.setCollideMask(BitMask32.allOn())
@@ -309,13 +309,24 @@ class Simulation(ShowBase):
             self.terrain.setColor(Vec4(0.1, 0.2, 0.1, 1))
             self.toggleTexture()
 
-
+        #self.fuelNP.setPos(0, 0, self.rocketNP.getPos().getZ() - self.length * 0.4 * (1 - self.fuelMass_init))
 
         for i in range(5):
-            #self.rocketNP.setPos(20, 20, self.height)
-            dt = globalClock.getFrameTime()
-            self.world.doPhysics(dt, 5, 1.0 / 180.0)
-            #pos = self.rocketNP.getPos()
+            self.world.doPhysics(self.dt, 5, 1.0 / 180.0)
+
+        self.fuelSlider.set_lower_linear_limit(-self.length * 0.5 * (1 - self.fuelMass_init))
+        self.fuelSlider.set_upper_linear_limit(self.length * 0.5 * (1 - self.fuelMass_init))
+
+        for i in range(100):
+            self.world.doPhysics(self.dt, 5, 1.0 / 180.0)
+            self.rocketNP.node().applyForce(Vec3(0,0,300000), Vec3(0, 0, 0))
+
+
+
+
+
+
+
 
     def updateRocket(self, mdot, dt):
 
