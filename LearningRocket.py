@@ -11,7 +11,7 @@ import numpy as np
 from direct.showbase.ShowBaseGlobal import globalClock
 from gym import spaces
 
-from PandaRocket import Simulation
+from PandaRocketLFOX import Simulation
 
 
 def mag(vec):
@@ -21,6 +21,8 @@ def mag(vec):
 class LearningRocket(gym.Env):
     """Custom Environment that follows gym interface"""
     metadata = {'render.modes': ['human']}
+    lastValves = [0.15,0.2,0.15]
+    landingSpeedLimit = 0.5
 
     def __init__(self, visualize=False):
         super(LearningRocket, self).__init__()
@@ -29,7 +31,7 @@ class LearningRocket(gym.Env):
         # They must be gym.spaces objects
         # Example when using discrete actions:
         #self.action_space = spaces.Box(low=np.array([0.1, -10, -10]), high=np.array([1, 10, 10]), dtype=np.double)
-        self.action_space = spaces.Box(low=np.array([0.15,0.15,0.15]), high=np.array([1,1,1]), dtype=np.double)
+        self.action_space = spaces.Box(low=np.array([0.15,0.15,0.15,-10]), high=np.array([1,1,1,10]), dtype=np.double)
         # Example for using image as input:
         """self.observation_space = spaces.Box(
             low=np.array([-400, -400, 0, -100, -100, -100, -180, -180, -180, -2, -2, -2, 0]),
@@ -48,15 +50,15 @@ class LearningRocket(gym.Env):
             dtype=np.double)"""
 
         self.observation_space = spaces.Box(
-            low=np.array([-1000, -100, 0, -100, -100, -100, -100, -100,0.15,0.15,0.15]),
-            high=np.array([1000, 100, 1, 200, 2000, 100, 500, 2000,1,1,1]),
+            low=np.array([-1000, -100, 0, -100, -100, -100, -100, -100,0.15,0.15,0.15,-500,100,-5,-5,0]),
+            high=np.array([1000, 100, 1, 200, 2000, 100, 500, 2000,1,1,1,-500,100,5,5,1]),
             dtype=np.double)
 
 
         # base.run()
 
     def step(self, action):
-        self.sim.control(action)#, action[1], action[2])
+        self.sim.control(np.array([action[0],action[1],action[2]]),action[3])#, action[1], action[2])
         # print("In LR: {}".format(action[0]))
         # self.sim.update()
 
@@ -66,14 +68,20 @@ class LearningRocket(gym.Env):
 
         #observation = np.array([pos[0], pos[1], vel[0], vel[1], Pitch, Yaw, rotVel[0], rotVel[1]])
         #observation = np.array([pos[2],vel[2],fuel])
-        observation = np.array([offset, vel[2], fuel, EngObs[0], EngObs[1], EngObs[2], EngObs[3], EngObs[4],
-                                valves[0],valves[1],valves[2]])
+        observation = np.array([offset, vel[2], fuel,
+                                EngObs[0], EngObs[1], EngObs[2], EngObs[3], EngObs[4],
+                                valves[0],valves[1],valves[2],
+                                pos.getX(),vel.getX(),Yaw,rotVel.getY(),
+                                LANDED])
 
         #print(action[0],valves[0])
         #print(observation)
 
         #Height Control
         reward = -abs(offset) / 10
+
+        #Position Control
+        reward -= abs(pos.getX()) /10
 
         #Mixture Control
         mixture = EngObs[3]/EngObs[2]
@@ -83,13 +91,26 @@ class LearningRocket(gym.Env):
         reward -= abs(EngObs[1]-900) / 1000
 
         #Don't jitter the Valves
-        ValveChange = abs(action[0]-valves[0])+abs(action[1]-valves[1])+abs(action[2]-valves[2])
-        reward -= ValveChange*2
+        ValveChange = abs(valves[0]-self.lastValves[0])+abs(valves[1]-self.lastValves[1])+abs(valves[2]-self.lastValves[2])
+        #ValveChange = abs(action[0]-valves[0])+abs(action[1]-valves[1])+abs(action[2]-valves[2])
+        reward -= ValveChange*5
+        self.lastValves = valves
 
-
+        #Don't blow up the engine
         if EngObs[1] > 900:
             reward -= 10
 
+        """
+        landingSpeed = abs(vel[0])+abs(vel[1])+abs(vel[2])
+        landingDiff = landingSpeed-self.landingSpeedLimit
+
+        if LANDED == 1:
+            if landingDiff > 0:
+                reward -= landingDiff*10000
+            reward += 1
+            valveDiff = valves[0]+valves[1]+valves[2]-0.5
+            reward -= valveDiff
+        """
         info = {
             "A": "B"
         }
@@ -101,8 +122,11 @@ class LearningRocket(gym.Env):
         #observation = np.array([pos[0], pos[1], pos[2], Roll, Pitch, Yaw])
         #observation = np.array([pos[0], pos[1], vel[0], vel[1], Pitch, Yaw, rotVel[0], rotVel[1]])
         #observation = np.array([pos[2], vel[2],fuel])
-        observation = np.array([offset, vel[2], fuel, EngObs[0], EngObs[1], EngObs[2], EngObs[3], EngObs[4],
-                                valves[0],valves[1],valves[2]])
+        observation = np.array([offset, vel[2], fuel,
+                                EngObs[0], EngObs[1], EngObs[2], EngObs[3], EngObs[4],
+                                valves[0],valves[1],valves[2],
+                                pos.getX(),vel.getX(),Yaw,rotVel.getY(),
+                                LANDED])
 
         return observation
 
