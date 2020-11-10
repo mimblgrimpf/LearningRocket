@@ -4,20 +4,20 @@ from stable_baselines.common.callbacks import EvalCallback
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common import make_vec_env
 from stable_baselines import PPO2
-from TestHover.LearningRocketHover import LearningRocket
+from TestHoverV2.LearningRocketHover import LearningRocket
 import matplotlib.pyplot as plt
 from stable_baselines.common.vec_env import VecNormalize
 import numpy as np
 
 
 # multiprocess environment
-env = make_vec_env(LearningRocket,n_envs=16)
+env = make_vec_env(LearningRocket,n_envs=32)
 eval_env = make_vec_env(lambda: LearningRocket(visualize=True),n_envs=1)
-#env = VecNormalize(env)
-#eval_env = VecNormalize(eval_env)
+env = VecNormalize(env)
+eval_env = VecNormalize(eval_env)
 
-env = VecNormalize.load("TestHover_env",env)
-eval_env = VecNormalize.load("TestHover_env",eval_env)
+#env = VecNormalize.load("TestHover_env",env)
+#eval_env = VecNormalize.load("TestHover_env",eval_env)
 
 eval_callback = EvalCallback(eval_env, best_model_save_path='Agent007',
                                      log_path='./logs/', eval_freq=10000,
@@ -28,7 +28,7 @@ model = PPO2(MlpPolicy, env, n_steps=1000, nminibatches=32, lam=0.98, gamma=0.99
                                   policy_kwargs = dict(layers=[400, 300]))
 
 
-model = PPO2.load("TestHover", env=env, tensorboard_log="./rocket_tensorboard/")
+#model = PPO2.load("TestHover", env=env, tensorboard_log="./rocket_tensorboard/")
 #while True:
 #model.learning_rate = 3e-5
 model.learn(total_timesteps=5000000,callback=eval_callback)

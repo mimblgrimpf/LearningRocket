@@ -11,7 +11,7 @@ import numpy as np
 from direct.showbase.ShowBaseGlobal import globalClock
 from gym import spaces
 
-from TestHover.PandaRocketLFOX import Simulation
+from TestHoverV2.PandaRocketLFOX import Simulation
 
 
 def mag(vec):
