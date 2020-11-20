@@ -11,7 +11,7 @@ import numpy as np
 from direct.showbase.ShowBaseGlobal import globalClock
 from gym import spaces
 
-from TestHoverV2.PandaRocketLFOX import Simulation
+from TestHoverNoCommands.PandaRocketSimple import Simulation
 
 
 def mag(vec):
@@ -27,12 +27,12 @@ class LearningRocket(gym.Env):
     def __init__(self, visualize=False):
         super(LearningRocket, self).__init__()
         self.sim = Simulation(visualize)
-        self.h0 = 350
+        #self.h0 = 350
         # Define action and observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
         #self.action_space = spaces.Box(low=np.array([0.1, -10, -10]), high=np.array([1, 10, 10]), dtype=np.double)
-        self.action_space = spaces.Box(low=np.array([0.15,0.15,0.15]), high=np.array([1,1,1]), dtype=np.double)
+        self.action_space = spaces.Box(low=np.array([-1,-1,-1]), high=np.array([1,1,1]), dtype=np.double)
         # Example for using image as input:
         """self.observation_space = spaces.Box(
             low=np.array([-400, -400, 0, -100, -100, -100, -180, -180, -180, -2, -2, -2, 0]),
@@ -51,37 +51,51 @@ class LearningRocket(gym.Env):
             dtype=np.double)"""
 
         self.observation_space = spaces.Box(
-            low=np.array([-1000, -1000, -100, 0, -100, -100,0]),
-            high=np.array([1000, 1000, 100, 1, 200, 2000,10]),
+            low=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            high=np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
             dtype=np.double)
 
 
         # base.run()
 
     def step(self, action):
+        #print(action)
+        for i in range(3):
+            action[i] = (1 - 0.15) / (2) * action[i] + (0.15 * 1 - 1 * (-1)) / (2)
+
         self.sim.control(np.array([action[0],action[1],action[2]]),0)
+        #print(action)
 
-        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED, targetAlt, EngObs, valves = self.sim.observe()
+        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED, targetAlt, EngObs, valves, steps = self.sim.observe()
 
-        observation = np.array([pos.getZ(), targetAlt, vel[2], fuel,
-                                EngObs[0], EngObs[1], EngObs[3]/EngObs[2]])
+        observation = np.array([pos.getZ()/1000, targetAlt/1000, (100+vel[2])/200, fuel,
+                                EngObs[0]/200, EngObs[1]/2000, EngObs[3]/EngObs[2]/10, EngObs[4]/1000, steps/1500, LANDED])
 
 
 
         #Height Control
-        reward = -abs(pos.getZ()-targetAlt)/10
+        reward = -(abs(pos.getZ()-targetAlt)/2)
 
         #Mixture Control
         mixture = EngObs[3]/EngObs[2]
-        reward -= abs(mixture-5.5)
+        mixError = abs(mixture-5.5)/0.1
+        reward -= mixError
+        #if mixError > 0.3:
+        #    reward -= 10
 
         #Temp Control
-        reward -= abs(EngObs[1]-900) / 1000
+        reward -= (abs(EngObs[1]-900)/30)
 
         #Don't blow up the engine
-        if EngObs[1] > 900:
-            reward -= 10
+        tempError = abs(EngObs[1] - 900)
+        #if tempError > 50:
+        #    reward -= 10
 
+        #if LANDED is True:
+        #    reward -= 100
+        reward = reward/10
+
+        #print(observation,reward)
 
         info = {
             "A": "B"
@@ -90,12 +104,12 @@ class LearningRocket(gym.Env):
 
     def reset(self):
         self.sim.doReset()
-        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED, targetAlt, EngObs,valves = self.sim.observe()
+        pos, vel, Roll, Pitch, Yaw, rotVel, fuel, EMPTY, done, LANDED, targetAlt, EngObs,valves, steps = self.sim.observe()
         #observation = np.array([pos[0], pos[1], pos[2], Roll, Pitch, Yaw])
         #observation = np.array([pos[0], pos[1], vel[0], vel[1], Pitch, Yaw, rotVel[0], rotVel[1]])
         #observation = np.array([pos[2], vel[2],fuel])
-        observation = np.array([pos.getZ(), targetAlt, vel[2], fuel,
-                                EngObs[0], EngObs[1], EngObs[3]/EngObs[2]])
+        observation = np.array([pos.getZ()/1000, targetAlt/1000, (100+vel[2])/200, fuel,
+                                EngObs[0]/200, EngObs[1]/2000, EngObs[3]/EngObs[2]/10, EngObs[4]/1000, steps/1500, LANDED])
 
         return observation
 

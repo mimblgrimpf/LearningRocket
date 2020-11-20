@@ -70,50 +70,21 @@ class Simulation(ShowBase):
 
     gimbalX = 0
     gimbalY = 0
-    #targetAlt = 35
     targetAlt = 250
-
-    radius = 1.8542 * scale
-    length = 47 * scale
-    Cd = 1.5
 
     R = RE(200 * 9.806, 250 * 9.806, 7607000 / 9 * scale, 0.4)
     throttle = 0.0
     fuelMass_full = 417000 * scale
     fuelMass_init = 0.10
-    LH2max = fuelMass_full/6.5
-    LOXmax = fuelMass_full*5.5/6.5
-    fuel_LH2 = fuelMass_init
-    fuel_LOX = fuelMass_init
-    fuelAmount_LH2 = fuel_LH2 * LH2max
-    fuelAmount_LOX = fuel_LOX * LOXmax
-    #LH2 Density 73kg/m3
-    #LOX Density 1141kg/m3
-    #Combined 976.7kg/m3
-    #1 ton of LH2 needs 13.7m3
-    #5.5 ton of LOX needs 4.8m3
-    #Tank Ratio 2.85
-    tank_ratio = 2.85 #LH2 tank size / LOX tank size
-    LOXTankLength = 1 / (tank_ratio + 1)
-    LH2TankLength = tank_ratio / (tank_ratio + 1)
+
+    radius = 1.8542 * scale
+    length = 47 * scale
+    Cd = 1.5
 
 
-    LOXCenter = length*(LOXTankLength*0.5-0.5)
-    LH2Center = length*(0.5-0.5*LH2TankLength)
-
-    LOXTankLength = LOXTankLength*length
-    LH2TankLength = LH2TankLength*length
-
-
-
-
-
-    def __init__(self, VISUALIZE=False, targetAlt=250, z0min=300, z0max=500):
+    def __init__(self, VISUALIZE=False):
 
         self.VISUALIZE = VISUALIZE
-        self.targetAlt = targetAlt
-        self.z0min = z0min
-        self.z0max = z0max
 
 
         if VISUALIZE is True:
@@ -231,10 +202,6 @@ class Simulation(ShowBase):
         self.DONE = False
         self.steps = 0
         self.fuelMass = self.fuelMass_full*self.fuelMass_init
-        self.fuel_LH2 = self.fuelMass_init
-        self.fuel_LOX = self.fuelMass_init
-        self.fuelAmount_LH2 = self.fuel_LH2 * self.LH2max
-        self.fuelAmount_LOX = self.fuel_LOX * self.LOXmax
 
     def setup(self):
 
@@ -287,7 +254,7 @@ class Simulation(ShowBase):
         self.rocketNP.node().setMass(27200 * self.scale)
         self.rocketNP.node().addShape(shape)
         #self.rocketNP.setPos(20,20,250)
-        self.rocketNP.setPos(r.randrange(-200,200), 20, r.randrange(self.z0min, self.z0max))
+        self.rocketNP.setPos(r.randrange(-200,200), 20, 350)#r.randrange(300, 500))
         #self.rocketNP.setPos(r.randrange(-self.lateralError, self.lateralError, 1), r.randrange(-self.lateralError, self.lateralError, 1), self.height)
         # self.rocketNP.setPos(0, 0, self.length*10)
         self.rocketNP.setCollideMask(BitMask32.allOn())
@@ -307,36 +274,30 @@ class Simulation(ShowBase):
 
         # Fuel
         self.fuelRadius = 0.9 * self.radius
-        shape = BulletCylinderShape(self.fuelRadius, self.length*0.9*self.tank_ratio/(1+self.tank_ratio), ZUp)
-        self.LH2NP = self.rocketNP.attachNewNode(BulletRigidBodyNode('Cone'))
-        self.LH2NP.node().setMass(self.fuelAmount_LH2)
-        self.rocketNP.node().addShape(shape,TransformState.makePosHpr(Point3(0, 0, self.LH2Center), Vec3(0, 0, 0)))
-        self.LH2NP.setPos(0, 0, self.LH2Center)
-        #self.LH2NP.setCollideMask(BitMask32.allOn())
-        #self.LH2NP.node().setCollisionResponse(0)
+        shape = BulletCylinderShape(self.fuelRadius, 0.01 * self.length, ZUp)
+        self.fuelNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Cone'))
+        self.fuelNP.node().setMass(self.fuelMass_full * self.fuelMass_init)
+        self.fuelNP.node().addShape(shape)
+        self.fuelNP.setPos(0, 0, self.rocketNP.getPos().getZ() - self.length * 0.5 * (1 - self.fuelMass_init))
+        self.fuelNP.setCollideMask(BitMask32.allOn())
+        self.fuelNP.node().setCollisionResponse(0)
 
-        shape = BulletCylinderShape(self.fuelRadius, self.length * 0.9 / (1 + self.tank_ratio), ZUp)
-        self.LOXNP = self.rocketNP.attachNewNode(BulletRigidBodyNode('Cone'))
-        #self.LOXNP.reparentTo(self.rocketNP)
-        self.LOXNP.node().setMass(self.fuelAmount_LOX)
-        self.rocketNP.node().addShape(shape,TransformState.makePosHpr(Point3(0, 0, self.LOXCenter), Vec3(0, 0, 0)))
-        self.LOXNP.setPos(0, 0, self.LOXCenter)
-        #self.LOXNP.setCollideMask(BitMask32.allOn())
-        #self.LOXNP.node().setCollisionResponse(0)
+        self.world.attachRigidBody(self.fuelNP.node())
 
-        #self.world.attachRigidBody(self.LH2NP.node())
-        #self.world.attachRigidBody(self.LOXNP.node())
-        #self.LH2NP.reparentTo(self.rocketNP)
-        #self.LOXNP.reparentTo(self.rocketNP)
+        frameA = TransformState.makePosHpr(Point3(0, 0, 0), Vec3(0, 0, 90))
+        frameB = TransformState.makePosHpr(Point3(0, 0, 0), Vec3(0, 0, 90))
 
-        #self.rocketNP.attachNewNode(self.LH2NP.node())
-        #self.rocketNP.attachNewNode(self.LOXNP.node())
+        self.fuelSlider = BulletSliderConstraint(self.rocketNP.node(), self.fuelNP.node(), frameA, frameB, 1)
+        self.fuelSlider.setTargetLinearMotorVelocity(0)
+        self.fuelSlider.setDebugDrawSize(2.0)
+        self.fuelSlider.set_lower_linear_limit(0)
+        self.fuelSlider.set_upper_linear_limit(0)
+        self.world.attachConstraint(self.fuelSlider)
 
         self.npThrustForce = LineNodePath(self.rocketNP, 'Thrust', thickness=4, colorVec=Vec4(1, 0.5, 0, 1))
         self.npDragForce = LineNodePath(self.rocketNP, 'Drag', thickness=4, colorVec=Vec4(1, 0, 0, 1))
         self.npLiftForce = LineNodePath(self.rocketNP, 'Lift', thickness=4, colorVec=Vec4(0, 0, 1, 1))
-        self.npLH2State = LineNodePath(self.LH2NP, 'LH2', thickness=20, colorVec=Vec4(1, 0, 0, 1))
-        self.npLOXState = LineNodePath(self.LOXNP, 'LOX', thickness=20, colorVec=Vec4(0, 0, 1, 1))
+        self.npFuelState = LineNodePath(self.fuelNP, 'Fuel', thickness=20, colorVec=Vec4(0, 1, 0, 1))
 
         self.rocketCSLon = self.radius ** 2 * math.pi
         self.rocketCSLat = self.length * 2 * self.radius
@@ -348,46 +309,47 @@ class Simulation(ShowBase):
             self.terrain.setColor(Vec4(0.1, 0.2, 0.1, 1))
             self.toggleTexture()
 
-        #self.LH2NP.setPos(0, 0, self.rocketNP.getPos().getZ())
-        #self.LOXNP.setPos(0, 0, self.rocketNP.getPos().getZ())
-        #
+        #self.fuelNP.setPos(0, 0, self.rocketNP.getPos().getZ() - self.length * 0.4 * (1 - self.fuelMass_init))
+
+        for i in range(5):
+            self.world.doPhysics(self.dt, 5, 1.0 / 180.0)
+
+        self.fuelSlider.set_lower_linear_limit(-self.length * 0.5 * (1 - self.fuelMass_init))
+        self.fuelSlider.set_upper_linear_limit(self.length * 0.5 * (1 - self.fuelMass_init))
+
+        for i in range(100):
+            self.world.doPhysics(self.dt, 5, 1.0 / 180.0)
+            self.rocketNP.node().applyForce(Vec3(0,0,300000), Vec3(0, 0, 0))
 
 
 
-    def updateRocket(self, LH2dot, LOXdot, dt):
+
+
+
+
+
+    def updateRocket(self, mdot, dt):
 
         # Fuel Update
-        self.fuelAmount_LH2 = self.LH2NP.node().getMass() - dt * LH2dot
-        self.fuelAmount_LOX = self.LOXNP.node().getMass() - dt * LOXdot
+        self.fuelMass = self.fuelNP.node().getMass() - dt * mdot
+        if self.fuelMass <= 0:
+            self.EMPTY is True
+        fuel_percent = self.fuelMass / self.fuelMass_full
+        self.fuelNP.node().setMass(self.fuelMass)
+        fuelHeight = self.length * fuel_percent
+        I1 = 1 / 2 * self.fuelMass * self.fuelRadius ** 2
+        I2 = 1 / 4 * self.fuelMass * self.fuelRadius ** 2 + 1 / 12 * self.fuelMass * fuelHeight * fuelHeight
+        self.fuelNP.node().setInertia(Vec3(I2, I2, I1))
 
-        if (self.fuelAmount_LH2 <= 0) | (self.fuelAmount_LOX <= 0):
-            self.EMPTY = True
+        # Shift fuel along slider constraint
+        fuelTargetPos = 0.5 * (self.length - fuelHeight)
+        fuelPos = self.fuelSlider.getLinearPos()
+        self.fuelSlider.set_upper_linear_limit(fuelTargetPos)
+        self.fuelSlider.set_lower_linear_limit(-fuelTargetPos)
 
-        self.fuel_LH2 = self.fuelAmount_LH2 / self.LH2max
-        self.fuel_LOX = self.fuelAmount_LOX / self.LOXmax
-        self.LH2NP.node().setMass(self.fuelAmount_LH2)
-        self.LOXNP.node().setMass(self.fuelAmount_LOX)
-
-
-        LH2height = self.length * self.fuel_LH2
-        LOXheight = self.length * self.fuel_LOX
-
-
-        I1 = 1 / 2 * self.fuelAmount_LH2 * self.fuelRadius ** 2
-        I2 = 1 / 4 * self.fuelAmount_LH2 * self.fuelRadius ** 2 + 1 / 12 * self.fuelAmount_LH2 * (self.LH2TankLength ** 2)
-        self.LH2NP.node().setInertia(Vec3(I2, I2, I1))
-
-        I1 = 1 / 2 * self.fuelAmount_LOX * self.fuelRadius ** 2
-        I2 = 1 / 4 * self.fuelAmount_LOX * self.fuelRadius ** 2 + 1 / 12 * self.fuelAmount_LOX * (self.LOXTankLength ** 2)
-        self.LOXNP.node().setInertia(Vec3(I2, I2, I1))
-
-        self.npLH2State.reset()
-        self.npLH2State.drawArrow2d(Vec3(0, 0, -0.5 * self.fuel_LH2), Vec3(0, 0, 0.5 * LH2height), 45, 2)
-        self.npLH2State.create()
-
-        self.npLOXState.reset()
-        self.npLOXState.drawArrow2d(Vec3(0, 0, -0.5 * self.fuel_LOX), Vec3(0, 0, 0.5 * LOXheight), 45, 2)
-        self.npLOXState.create()
+        self.npFuelState.reset()
+        self.npFuelState.drawArrow2d(Vec3(0, 0, -0.5 * fuelHeight), Vec3(0, 0, 0.5 * fuelHeight), 45, 2)
+        self.npFuelState.create()
 
     def observe(self):
         pos = self.rocketNP.getPos()
@@ -403,8 +365,8 @@ class Simulation(ShowBase):
         self.gimbalX = gimbalX
         self.gimbalY = 0
 
-        self.Valves = ValveCommands-(ValveCommands-self.Valves)*np.exp(-self.dt/self.tau)
-        #self.Valves = ValveCommands
+        #self.Valves = ValveCommands-(ValveCommands-self.Valves)*np.exp(-self.dt/self.tau)
+        self.Valves = ValveCommands
 
         self.EngObs = self.vulcain.predict_data_point(np.array(self.Valves).reshape(1,-1 ))
         #Brennkammerdruck, Gaskammertemp, H2Massenstrom, LOX MAssentrom, Schub
@@ -422,7 +384,7 @@ class Simulation(ShowBase):
             self.EMPTY = True
         #if pos.getZ() <= 36:
         #    self.LANDED = True
-        #self.LANDED = False
+        self.LANDED = False
         self.processContacts()
 
         P, T, rho = air_dens(pos[2])
@@ -482,9 +444,9 @@ class Simulation(ShowBase):
         #print(self.EMPTY,self.LANDED)
         if self.EMPTY is False & self.LANDED is False:
             self.rocketNP.node().applyForce(thrustWorld, quat.xform(Vec3(0, 0, -1 / 2 * self.length)))
-            self.updateRocket(self.EngObs[0][2],self.EngObs[0][3], self.dt)
+            self.updateRocket(self.EngObs[0][2]+self.EngObs[0][3], self.dt)
         self.rocketNP.node().setActive(True)
-        self.LH2NP.node().setActive(True)
+        self.fuelNP.node().setActive(True)
 
         self.processInput()
 
@@ -492,13 +454,13 @@ class Simulation(ShowBase):
         self.steps+=1
 
 
-        if self.steps > 1000:
+        if self.steps > 1500:
             self.DONE = True
 
         telemetry = []
 
         telemetry.append('Thrust: {}'.format(int(self.EngObs[0][4])))
-        telemetry.append('Fuel: {}, {}%'.format(int(self.fuel_LH2*100), int(self.fuel_LOX*100)))
+        telemetry.append('Fuel: {}%'.format(int(self.fuelMass / self.fuelMass_full * 100.0)))
         telemetry.append('Gimbal: {}'.format(int(self.gimbalX)) + ',{}'.format(int(self.gimbalY)))
         telemetry.append('AoA: {}'.format(int(AoA / math.pi * 180.0)))
         telemetry.append('\nPos: {},{}'.format(int(pos.getX()), int(pos.getY())))
@@ -540,6 +502,6 @@ if __name__ == "__main__":
     #simulation.run()
     for i in range(10000):
         #simulation.control([0.1,0.1,0.1])
-        simulation2.control(np.asarray([0.15,0.15,0.1]).reshape(1,-1),10)
+        simulation2.control(np.asarray([0.15,0.15,0.15]).reshape(1,-1))
         #pos,_,_,_,_,_,_,_,_=simulation.observe()
         #print(pos)
